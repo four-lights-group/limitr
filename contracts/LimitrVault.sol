@@ -9,21 +9,23 @@ import "./interfaces/ILimitrRegistry.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC721Receiver.sol";
 
+/// @dev trade handler
 struct TradeHandler {
     uint256 amountIn;
     uint256 amountOut;
-    uint256 availableAmount;
+    uint256 availableAmountIn;
 }
 
+/// @dev trade handler methods
 library TradeHandlerLib {
     function update(
         TradeHandler memory _trade,
         uint256 amountIn,
         uint256 amountOut
     ) internal pure {
-        _trade.amountOut += amountOut;
         _trade.amountIn += amountIn;
-        _trade.availableAmount -= amountIn;
+        _trade.amountOut += amountOut;
+        _trade.availableAmountIn -= amountIn;
     }
 }
 
@@ -489,31 +491,12 @@ contract LimitrVault is ILimitrVault {
         uint256 maxAmountOut,
         uint256 maxPrice
     ) external view override returns (uint256 amountIn, uint256 amountOut) {
-        uint256 orderID = 0;
-        Order memory _order;
-        DLL storage orderList = _orders[buyToken];
-        while (true) {
-            orderID = orderList.next(orderID);
-            if (orderID == 0) {
-                break;
-            }
-            _order = orderInfo[buyToken][orderID];
-            if (_order.trader == address(0)) {
-                break;
-            }
-            if (_order.price > maxPrice) {
-                break;
-            }
-            uint256 buyAmount = maxAmountOut > _order.amount
-                ? _order.amount
-                : maxAmountOut;
-            amountIn += costAtPrice(buyToken, buyAmount, _order.price);
-            amountOut += buyAmount;
-            maxAmountOut -= buyAmount;
-            if (maxAmountOut == 0) {
-                break;
-            }
-        }
+        return
+            _returnAtMaxPrice(
+                buyToken,
+                costAtPrice(buyToken, maxAmountOut, maxPrice),
+                maxPrice
+            );
     }
 
     /// @notice The amount of tokens that can be purchased (from the vault) with up to
@@ -528,6 +511,14 @@ contract LimitrVault is ILimitrVault {
         uint256 maxAmountIn,
         uint256 maxPrice
     ) external view override returns (uint256 amountIn, uint256 amountOut) {
+        return _returnAtMaxPrice(buyToken, maxAmountIn, maxPrice);
+    }
+
+    function _returnAtMaxPrice(
+        address buyToken,
+        uint256 maxAmountIn,
+        uint256 maxPrice
+    ) internal view returns (uint256 amountIn, uint256 amountOut) {
         uint256 orderID = 0;
         Order memory _order;
         DLL storage orderList = _orders[buyToken];
@@ -573,43 +564,12 @@ contract LimitrVault is ILimitrVault {
         uint256 maxAmountOut,
         uint256 avgPrice
     ) external view override returns (uint256 amountIn, uint256 amountOut) {
-        uint256 orderID = 0;
-        Order memory _order;
-        DLL storage orderList = _orders[buyToken];
-        while (true) {
-            orderID = orderList.next(orderID);
-            if (orderID == 0) {
-                break;
-            }
-            _order = orderInfo[buyToken][orderID];
-            if (_order.trader == address(0)) {
-                break;
-            }
-            uint256 buyAmount = maxAmountOut > _order.amount
-                ? _order.amount
-                : maxAmountOut;
-            TradeHandler memory t = TradeHandler(
-                amountIn,
-                amountOut,
-                costAtPrice(buyToken, maxAmountOut + 1, _order.price)
+        return
+            _returnAtAvgPrice(
+                buyToken,
+                costAtPrice(buyToken, maxAmountOut, avgPrice),
+                avgPrice
             );
-            buyAmount = _maxAmountAvgPrice(buyToken, avgPrice, t, _order.price);
-            if (buyAmount == 0) {
-                break;
-            }
-            if (buyAmount > _order.amount) {
-                buyAmount = _order.amount;
-            }
-            if (buyAmount > maxAmountOut) {
-                buyAmount = maxAmountOut;
-            }
-            amountIn += costAtPrice(buyToken, buyAmount, _order.price);
-            amountOut += buyAmount;
-            maxAmountOut -= buyAmount;
-            if (maxAmountOut == 0) {
-                break;
-            }
-        }
     }
 
     /// @notice The amount of tokens that can be purchased (from the vault) with up to
@@ -624,47 +584,7 @@ contract LimitrVault is ILimitrVault {
         uint256 maxAmountIn,
         uint256 avgPrice
     ) external view override returns (uint256 amountIn, uint256 amountOut) {
-        uint256 orderID = 0;
-        Order memory _order;
-        DLL storage orderList = _orders[buyToken];
-        while (true) {
-            orderID = orderList.next(orderID);
-            if (orderID == 0) {
-                break;
-            }
-            _order = orderInfo[buyToken][orderID];
-            if (_order.trader == address(0)) {
-                break;
-            }
-            TradeHandler memory t = TradeHandler(
-                amountIn,
-                amountOut,
-                maxAmountIn
-            );
-            uint256 amt = _maxAmountAvgPrice(
-                buyToken,
-                avgPrice,
-                t,
-                _order.price
-            );
-            if (amt == 0) {
-                break;
-            }
-            if (amt > _order.amount) {
-                amt = _order.amount;
-            }
-            uint256 maxAmt = returnAtPrice(buyToken, maxAmountIn, _order.price);
-            if (amt > maxAmt) {
-                amt = maxAmt;
-            }
-            amountOut += amt;
-            uint256 price = costAtPrice(buyToken, amt, _order.price);
-            amountIn += price;
-            maxAmountIn -= price;
-            if (maxAmountIn == 0) {
-                break;
-            }
-        }
+        return _returnAtAvgPrice(buyToken, maxAmountIn, avgPrice);
     }
 
     // order creation functions
@@ -802,10 +722,45 @@ contract LimitrVault is ILimitrVault {
         returns (uint256, uint256)
     {
         TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        while (trade.availableAmount > 0) {
-            if (!_tradeFirstOrderMaxPrice(buyToken, maxPrice, trade)) {
+        while (trade.availableAmountIn > 0) {
+            // get the order ID
+            uint256 orderID = _orders[buyToken].first();
+            if (orderID == 0) {
                 break;
             }
+            // get the order
+            Order memory _order = orderInfo[buyToken][orderID];
+            // check price
+            if (_order.price > maxPrice) {
+                break;
+            }
+            // max amount of the base token that can be purchased with the
+            uint256 buyAmount = returnAtPrice(
+                buyToken,
+                trade.availableAmountIn,
+                _order.price
+            );
+            if (buyAmount == 0) {
+                break;
+            }
+            if (buyAmount > _order.amount) {
+                buyAmount = _order.amount;
+            }
+            uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
+            if (cost > trade.availableAmountIn) {
+                cost = trade.availableAmountIn;
+                buyAmount = returnAtPrice(buyToken, cost, _order.price);
+            }
+            _order.amount -= buyAmount;
+            _updateTraderBalance(
+                buyToken == token0 ? token1 : token0,
+                _order.trader,
+                cost
+            );
+            _updateVolume(buyToken, _order.price, cost);
+            _updateOrderList(buyToken, orderID, _order.amount);
+            trade.update(cost, buyAmount);
+            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
         }
         require(trade.amountIn > 0 && trade.amountOut > 0, "No trade");
         uint256 fee = feeFor(trade.amountIn);
@@ -820,6 +775,35 @@ contract LimitrVault is ILimitrVault {
         );
         _withdrawToken(buyToken, receiver, trade.amountOut);
         return (trade.amountIn + fee, trade.amountOut);
+    }
+
+    function _updateTraderBalance(
+        address token,
+        address owner,
+        uint256 cost
+    ) internal {
+        traderBalance[token][owner] += cost;
+    }
+
+    function _updateVolume(
+        address token,
+        uint256 price,
+        uint256 amount
+    ) internal {
+        volumeByPrice[token][price] -= amount;
+        totalVolume[token] -= amount;
+    }
+
+    function _updateOrderList(
+        address token,
+        uint256 orderID,
+        uint256 newAmount
+    ) internal {
+        if (newAmount == 0) {
+            _removeOrder(token, orderID);
+        } else {
+            orderInfo[token][orderID].amount = newAmount;
+        }
     }
 
     /// @notice Buys buyToken from the vault with an average price (total),
@@ -846,10 +830,42 @@ contract LimitrVault is ILimitrVault {
         returns (uint256, uint256)
     {
         TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        while (trade.availableAmount > 0) {
-            if (!_tradeFirstOrderAvgPrice(buyToken, avgPrice, trade)) {
+        while (trade.availableAmountIn > 0) {
+            // get the order ID
+            uint256 orderID = _orders[buyToken].first();
+            if (orderID == 0) {
                 break;
             }
+            // get the order
+            Order memory _order = orderInfo[buyToken][orderID];
+            // max amount of the base token that can be purchased
+            uint256 buyAmount = _maxAmountAvgPrice(
+                buyToken,
+                avgPrice,
+                trade,
+                _order.price
+            );
+            if (buyAmount == 0) {
+                break;
+            }
+            if (buyAmount > _order.amount) {
+                buyAmount = _order.amount;
+            }
+            uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
+            if (cost > trade.availableAmountIn) {
+                cost = trade.availableAmountIn;
+                buyAmount = returnAtPrice(buyToken, cost, _order.price);
+            }
+            _order.amount -= buyAmount;
+            _updateTraderBalance(
+                buyToken == token0 ? token1 : token0,
+                _order.trader,
+                cost
+            );
+            _updateVolume(buyToken, _order.price, cost);
+            _updateOrderList(buyToken, orderID, _order.amount);
+            trade.update(cost, buyAmount);
+            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
         }
         require(trade.amountIn > 0 && trade.amountOut > 0, "No trade");
         uint256 fee = feeFor(trade.amountIn);
@@ -1107,7 +1123,7 @@ contract LimitrVault is ILimitrVault {
         _;
     }
 
-    // // internal variables and methods
+    // internal variables and methods
 
     mapping(address => uint256) internal _oneToken;
 
@@ -1324,60 +1340,32 @@ contract LimitrVault is ILimitrVault {
         emit Transfer(orderTrader, address(0), orderID);
     }
 
-    /// @dev trade the first order at a max price
-    function _tradeFirstOrderMaxPrice(
-        address buyToken,
-        uint256 maxPrice,
-        TradeHandler memory trade
-    ) internal returns (bool) {
-        // get the order ID
-        uint256 orderID = _orders[buyToken].first();
-        // get the order
-        Order memory _order = orderInfo[buyToken][orderID];
-        // check price and trader
-        if (_order.trader == address(0)) {
-            return false;
-        }
-        if (_order.price > maxPrice) {
-            return false;
-        }
-        // max amount of the base token that can be purchased with the
-        uint256 maxAmount = returnAtPrice(
-            buyToken,
-            trade.availableAmount,
-            _order.price
-        );
-        // remaining amount of counter token
-        return _tradeOrder(buyToken, orderID, _order, trade, maxAmount);
-    }
-
-    /// @dev trade the first order at an average price
-    function _tradeFirstOrderAvgPrice(
-        address buyToken,
-        uint256 avgPrice,
-        TradeHandler memory trade
-    ) internal returns (bool) {
-        // get the order ID
-        uint256 orderID = _orders[buyToken].first();
-        // get the order
-        Order memory _order = orderInfo[buyToken][orderID];
-        // check trader
-        if (_order.trader == address(0)) {
-            return false;
-        }
-        // max amount of the base token that can be purchased with the
-        // remaining amount of counter token
-        uint256 maxAmount = _maxAmountAvgPrice(
-            buyToken,
-            avgPrice,
-            trade,
-            _order.price
-        );
-        if (maxAmount == 0) {
-            return false;
-        }
-        return _tradeOrder(buyToken, orderID, _order, trade, maxAmount);
-    }
+    // /// @dev trade the first order at an average price
+    // function _tradeFirstOrderAvgPrice(
+    //     address buyToken,
+    //     uint256 avgPrice,
+    //     TradeHandler memory trade
+    // ) internal returns (bool) {
+    //     // get the order ID
+    //     uint256 orderID = _orders[buyToken].first();
+    //     if (orderID == 0) {
+    //         return false;
+    //     }
+    //     // get the order
+    //     Order memory _order = orderInfo[buyToken][orderID];
+    //     // // max amount of the base token that can be purchased with the
+    //     // // remaining amount of counter token
+    //     // uint256 maxAmount = _maxAmountAvgPrice(
+    //     //     buyToken,
+    //     //     avgPrice,
+    //     //     trade,
+    //     //     _order.price
+    //     // );
+    //     // if (maxAmount == 0) {
+    //     //     return false;
+    //     // }
+    //     // return _tradeOrder(buyToken, orderID, _order, trade, maxAmount);
+    // }
 
     function _maxAmountAvgPrice(
         address buyToken,
@@ -1388,7 +1376,11 @@ contract LimitrVault is ILimitrVault {
         if (trade.amountOut == 0 || trade.amountIn == 0) {
             if (orderPrice + feeFor(orderPrice) <= avgPrice) {
                 return
-                    returnAtPrice(buyToken, trade.availableAmount, orderPrice);
+                    returnAtPrice(
+                        buyToken,
+                        trade.availableAmountIn,
+                        orderPrice
+                    );
             }
             return 0;
         }
@@ -1400,40 +1392,6 @@ contract LimitrVault is ILimitrVault {
         t = remPercentage * avgPrice;
         b = b > t ? b - t : t - b;
         return a / b;
-    }
-
-    function _tradeOrder(
-        address buyToken,
-        uint256 orderID,
-        Order memory _order,
-        TradeHandler memory trade,
-        uint256 maxAmount
-    ) internal returns (bool fullOrder) {
-        // only the available amount in the order
-        uint256 amt = maxAmount >= _order.amount ? _order.amount : maxAmount;
-        // calculate cost
-        uint256 cost = costAtPrice(buyToken, amt, _order.price);
-        if (cost > trade.availableAmount) {
-            cost = trade.availableAmount;
-            amt = returnAtPrice(buyToken, cost, _order.price);
-        }
-        fullOrder = amt == _order.amount;
-        // remaining amount of the order
-        uint256 newAmount = _order.amount - amt;
-        // update the trader balance and volume
-        traderBalance[buyToken == token0 ? token1 : token0][
-            _order.trader
-        ] += cost;
-        volumeByPrice[buyToken][_order.price] -= amt;
-        totalVolume[buyToken] -= amt;
-        // remove order or update amount
-        if (newAmount == 0) {
-            _removeOrder(buyToken, orderID);
-        } else {
-            orderInfo[buyToken][orderID].amount = newAmount;
-        }
-        trade.update(cost, amt);
-        emit OrderTaken(buyToken, orderID, amt, _order.price);
     }
 
     function _ERC721SafeTransfer(
@@ -1499,5 +1457,52 @@ contract LimitrVault is ILimitrVault {
         } catch {
             return false;
         }
+    }
+
+    function _returnAtAvgPrice(
+        address buyToken,
+        uint256 maxAmountIn,
+        uint256 avgPrice
+    ) internal view returns (uint256 amountIn, uint256 amountOut) {
+        uint256 orderID = 0;
+        Order memory _order;
+        DLL storage orderList = _orders[buyToken];
+        TradeHandler memory trade = TradeHandler(0, 0, maxAmountIn);
+        while (true) {
+            orderID = orderList.next(orderID);
+            if (orderID == 0) {
+                break;
+            }
+            _order = orderInfo[buyToken][orderID];
+            uint256 buyAmount = _maxAmountAvgPrice(
+                buyToken,
+                avgPrice,
+                trade,
+                _order.price
+            );
+            if (buyAmount == 0) {
+                break;
+            }
+            if (buyAmount > _order.amount) {
+                buyAmount = _order.amount;
+            }
+            uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
+            if (cost > trade.availableAmountIn) {
+                buyAmount = returnAtPrice(
+                    buyToken,
+                    trade.availableAmountIn,
+                    _order.price
+                );
+                if (buyAmount == 0) {
+                    break;
+                }
+                cost = costAtPrice(buyToken, buyAmount, _order.price);
+            }
+            trade.update(cost, buyAmount);
+            if (trade.availableAmountIn == 0) {
+                break;
+            }
+        }
+        return (trade.amountIn, trade.amountOut);
     }
 }

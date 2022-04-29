@@ -2,11 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+// sorted double linked list
 struct SDLL {
     mapping(uint256 => uint256) _next;
     mapping(uint256 => uint256) _prev;
 }
 
+// sorted double linked list handling
 library SortedDoubleLinkedList {
     function first(SDLL storage s) internal view returns (uint256) {
         return s._next[0];

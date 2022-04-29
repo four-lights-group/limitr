@@ -8,6 +8,9 @@ import "./interfaces/ILimitrRegistry.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/IERC20.sol";
 
+/// @author Limitr
+/// @notice This is the vault router, which handles wrapping/unwrapping ETH and
+///         vault creation
 contract LimitrRouter is ILimitrRouter {
     /// @return The address for the registry
     address public immutable override registry;

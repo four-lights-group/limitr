@@ -2,11 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+// double linked list
 struct DLL {
     mapping(uint256 => uint256) _next;
     mapping(uint256 => uint256) _prev;
 }
 
+// double linked list handling
 library DoubleLinkedList {
     function first(DLL storage dll) internal view returns (uint256) {
         return dll._next[0];

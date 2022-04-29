@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 pragma solidity ^0.8.0;
 
 import "./interfaces/ILimitrRegistry.sol";
 import "./interfaces/ILimitrVault.sol";
 
+/// @author Limitr
+/// @notice This is the contract for the Limitr main registry
 contract LimitrRegistry is ILimitrRegistry {
     /// @return The admin address
     address public override admin;

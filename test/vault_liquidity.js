@@ -23,7 +23,7 @@ contract("LimitrVault", (accounts) => {
       })
     );
   };
-  const expVolume = async (depl) => {
+  const expLiquidity = async (depl) => {
     const tkaDecimals = await depl.tokens.tka.decimals();
     const tkbDecimals = await depl.tokens.tkb.decimals();
     return [
@@ -36,11 +36,11 @@ contract("LimitrVault", (accounts) => {
     ];
   };
 
-  it("returns the correct volume per price", async () => {
+  it("returns the correct liquidity per price", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     await depl.vaultTrackers[0].verifyOrders();
-    const vol = await expVolume(depl);
+    const vol = await expLiquidity(depl);
     const vault = await depl.vaultAtIdx(0);
     const prices = await vault
       .prices(
@@ -50,26 +50,26 @@ contract("LimitrVault", (accounts) => {
       )
       .then((prices) => prices.map((p) => p).filter((p) => p != 0n));
     assert.isTrue(prices.length == vol.length);
-    const vaultVolume = await Promise.all(
+    const vaultLiquidity = await Promise.all(
       prices.map((price) =>
         vault
-          .volumeByPrice(depl.tokens.tka.address, price)
+          .liquidityByPrice(depl.tokens.tka.address, price)
           .then((v) => [price, v])
       )
     );
-    assert.isTrue(objEqual(vaultVolume, vol));
+    assert.isTrue(objEqual(vaultLiquidity, vol));
   });
 
-  it("returns the correct total volume", async () => {
+  it("returns the correct total liquidity", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     await depl.vaultTrackers[0].verifyOrders();
-    const volTotal = await expVolume(depl).then((r) =>
+    const volTotal = await expLiquidity(depl).then((r) =>
       r.map((v) => v[1]).reduce((ac, v) => ac + v, 0n)
     );
     const vault = await depl.vaultAtIdx(0);
     assert.isTrue(
-      volTotal == (await vault.totalVolume(depl.tokens.tka.address))
+      volTotal == (await vault.totalLiquidity(depl.tokens.tka.address))
     );
   });
 });

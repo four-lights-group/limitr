@@ -19,17 +19,19 @@ const objFromEntries = (ent) =>
 const expectReason = (err, reason) => assert.isTrue(err.reason == reason);
 
 const assertReason = {
-  onlyForTheAdmin: (err) => expectReason(err, "Only for the admin"),
+  onlyForTheAdmin: (err) =>
+    expectReason(err, "LimitrVault: only for the admin"),
   canOnlySetASmallerFee: (err) =>
-    expectReason(err, "Can only set a smaller fee"),
+    expectReason(err, "LimitrVault: can only set a smaller fee"),
   notTheOwnerApprovedOrOperator: (err) => (
-    err, "not the owner, approved or operator"
+    err, "LimitrVault: not the owner, approved or operator"
   ),
 };
 
+const estimateGas = (func, ...args) => func.estimateGas(...args);
+
 const sendWithExtraGas = (func, args, ratio) =>
-  func
-    .estimateGas(...args)
+  estimateGas(func, ...args)
     .then((gas) => Math.ceil(ratio ? gas * ratio : gas * 1.5))
     .then((gas) => func(...args.concat([{ gas }])));
 
@@ -264,25 +266,53 @@ const vaultBuyMaxPrice = async (
   );
 };
 
-const vaultBuyAvgPrice = async (
+const vaultBuyAvgPrice = (
   vault,
   buyToken,
   sellToken,
   price,
   maxAmountIn,
   receiver
-) => {
-  await sellToken.approve(vault.address, maxAmountIn);
-  return await vault.buyAtAvgPrice(
-    buyToken.address,
-    price,
-    maxAmountIn,
-    receiver,
-    0
-  );
-};
+) =>
+  sellToken
+    .approve(vault.address, maxAmountIn)
+    .then(() =>
+      sendWithExtraGas(
+        vault.buyAtAvgPrice,
+        [buyToken.address, price, maxAmountIn, receiver, 0],
+        10
+      )
+    );
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+
+// amount formatting and parsing
+const formatAmount = (amount, decimals) => {
+  if (amount === undefined) {
+    return undefined;
+  }
+  const isNegative = amount < 0;
+  let a = String(BigInt(amount));
+  if (isNegative) {
+    a = a.slice(1);
+  }
+  if (a.length <= decimals) {
+    var i = "";
+    var d = a;
+  } else {
+    let idx = a.length - decimals;
+    i = a.slice(0, idx);
+    d = a.slice(idx);
+  }
+  if (i === "") {
+    i = "0";
+  }
+  d = d.padStart(decimals, "0");
+  while (d.endsWith("0")) {
+    d = d.slice(0, -1);
+  }
+  return `${isNegative ? "-" : ""}${i}${d.length > 0 ? "." : ""}${d}`;
+};
 
 module.exports = {
   assertReason,
@@ -292,6 +322,7 @@ module.exports = {
   objFromEntries,
   objEqual,
   sendWithExtraGas,
+  estimateGas,
   generateTokensSpecs,
   newDeployment,
   twoTokenDeployment,
@@ -300,4 +331,5 @@ module.exports = {
   vaultBuyMaxPrice,
   vaultBuyAvgPrice,
   ADDRESS_ZERO,
+  formatAmount,
 };

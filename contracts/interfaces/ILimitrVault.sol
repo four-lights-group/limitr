@@ -57,11 +57,12 @@ interface ILimitrVault is IERC721 {
 
     // fee functions
 
-    /// @return The fee percentage represented as a value between 0 and 1 multiplied by 10^18
+    /// @return The fee percentage represented as a value between 0 and 10^18
     function feePercentage() external view returns (uint256);
 
-    /// @notice Set a new fee (must be smaller than the current, for the feeReceiverSetter only)
-    /// @param newFeePercentage The new fee in the format described in feePercentage
+    /// @notice Set a new fee (must be smaller than the current, for the `feeReceiverSetter` only)
+    ///         Emits a NewFeePercentage event
+    /// @param newFeePercentage The new fee in the format described in `feePercentage`
     function setFeePercentage(uint256 newFeePercentage) external;
 
     // factory and token addresses
@@ -77,32 +78,32 @@ interface ILimitrVault is IERC721 {
 
     // price listing functions
 
-    /// @return The first price on the order book for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The first price on the order book for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function firstPrice(address token) external view returns (uint256);
 
-    /// @return The last price on the order book for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The last price on the order book for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function lastPrice(address token) external view returns (uint256);
 
-    /// @return The previous price to the pointer for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The previous price to the pointer for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     function previousPrice(address token, uint256 current)
         external
         view
         returns (uint256);
 
-    /// @return The next price to the current for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The next price to the current for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     function nextPrice(address token, uint256 current)
         external
         view
         returns (uint256);
 
-    /// @return N prices after current for the provided token
-    /// @param token Must be token0 or token1
+    /// @return N prices after current for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     /// @param n The number of prices to return
     function prices(
@@ -111,8 +112,8 @@ interface ILimitrVault is IERC721 {
         uint256 n
     ) external view returns (uint256[] memory);
 
-    /// @return n price pointers for the provided price for the provided token
-    /// @param token Must be token0 or token1
+    /// @return n price pointers for the provided price for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param price The price to insert
     /// @param nPointers The number of pointers to return
     function pricePointers(
@@ -123,47 +124,43 @@ interface ILimitrVault is IERC721 {
 
     // orders functions
 
-    /// @return The ID of the first order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the first order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function firstOrder(address token) external view returns (uint256);
 
-    /// @return The ID of the last order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the last order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function lastOrder(address token) external view returns (uint256);
 
-    /// @return The ID of the previous order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the previous order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param currentID Pointer to the current order
     function previousOrder(address token, uint256 currentID)
         external
         view
         returns (uint256);
 
-    /// @return The ID of the next order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the next order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param currentID Pointer to the current order
     function nextOrder(address token, uint256 currentID)
         external
         view
         returns (uint256);
 
-    /// @notice Returns the order data for the provided token and orderID
-    /// @param token Must be token0 or token1
-    /// @param orderID ID of the order
-    /// @return price The price for the order
-    /// @return amount The amount of the base token for sale
-    /// @return trader The owner of the order
-    function orderInfo(address token, uint256 orderID)
-        external
-        view
-        returns (
-            uint256 price,
-            uint256 amount,
-            address trader
-        );
+    /// @notice Returns n order IDs from the current for the provided `token`
+    /// @param token Must be `token0` or `token1`
+    /// @param current The current ID
+    /// @param n The number of IDs to return
+    function orders(
+        address token,
+        uint256 current,
+        uint256 n
+    ) external view returns (uint256[] memory);
 
-    /// @notice Returns the order data for n orders of the provided token, starting after current
-    /// @param token Must be token0 or token1
+    /// @notice Returns the order data for `n` orders of the provided `token`,
+    ///         starting after `current`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current ID
     /// @param n The number of IDs to return
     /// @return id Array of order IDs
@@ -184,52 +181,60 @@ interface ILimitrVault is IERC721 {
             address[] memory trader
         );
 
-    /// @return Returns n order IDs from the current for the provided token
-    /// @param token Must be token0 or token1
-    /// @param current The current ID
-    /// @param n The number of IDs to return
-    function orders(
-        address token,
-        uint256 current,
-        uint256 n
-    ) external view returns (uint256[] memory);
+    /// @notice Returns the order data for the provided `token` and `orderID`
+    /// @param token Must be `token0` or `token1`
+    /// @param orderID ID of the order
+    /// @return price The price for the order
+    /// @return amount The amount of the base token for sale
+    /// @return trader The owner of the order
+    function orderInfo(address token, uint256 orderID)
+        external
+        view
+        returns (
+            uint256 price,
+            uint256 amount,
+            address trader
+        );
 
-    /// @return Returns the token for sale of the provided orderID
+    /// @return Returns the token for sale of the provided `orderID`
     /// @param orderID The order ID
     function orderToken(uint256 orderID) external view returns (address);
 
     /// @return The last assigned order ID
     function lastID() external view returns (uint256);
 
-    /// volume functions
+    /// liquidity functions
 
-    /// @return Return the available volume at a particular price, for the provided token
-    /// @param token Must be token0 or token1
+    /// @return Return the available liquidity at a particular price, for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param price The price
-    function volumeByPrice(address token, uint256 price)
+    function liquidityByPrice(address token, uint256 price)
         external
         view
         returns (uint256);
 
-    /// @notice Return the available volume until maxPrice
-    /// @param token Must be token0 or token1
+    /// @notice Return the available liquidity until `maxPrice`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     /// @param n The number of prices to return
     /// @return price Array of prices
-    /// @return volume Array of volumes
-    function volume(
+    /// @return priceLiquidity Array of liquidity
+    function liquidity(
         address token,
         uint256 current,
         uint256 n
-    ) external view returns (uint256[] memory price, uint256[] memory volume);
+    )
+        external
+        view
+        returns (uint256[] memory price, uint256[] memory priceLiquidity);
 
-    /// @return The total volume available for the provided token
-    /// @param token Must be token0 or token1
-    function totalVolume(address token) external view returns (uint256);
+    /// @return The total liquidity available for the provided `token`
+    /// @param token Must be `token0` or `token1`
+    function totalLiquidity(address token) external view returns (uint256);
 
     // trader order functions
 
-    /// @return The ID of the first order of the trader for the provided token
+    /// @return The ID of the first order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     function firstTraderOrder(address token, address trader)
@@ -237,7 +242,7 @@ interface ILimitrVault is IERC721 {
         view
         returns (uint256);
 
-    /// @return The ID of the last order of the trader
+    /// @return The ID of the last order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     function lastTraderOrder(address token, address trader)
@@ -245,7 +250,7 @@ interface ILimitrVault is IERC721 {
         view
         returns (uint256);
 
-    /// @return The ID of the previous order of the trader for the provided token
+    /// @return The ID of the previous order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     /// @param currentID Pointer to a trade
@@ -255,7 +260,7 @@ interface ILimitrVault is IERC721 {
         uint256 currentID
     ) external view returns (uint256);
 
-    /// @return The ID of the next order of the trader for the provided token
+    /// @return The ID of the next order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     /// @param currentID Pointer to a trade
@@ -265,8 +270,8 @@ interface ILimitrVault is IERC721 {
         uint256 currentID
     ) external view returns (uint256);
 
-    /// @notice Returns n trader order IDs from the current for the provided token
-    /// @param token The token to list
+    /// @notice Returns n order IDs from `current` for the provided `token`
+    /// @param token The `token` to list
     /// @param trader The trader
     /// @param current The current ID
     /// @param n The number of IDs to return
@@ -279,27 +284,27 @@ interface ILimitrVault is IERC721 {
 
     // fee calculation functions
 
-    /// @return The amount available after collecting the fee
-    /// @param amount The total amount
-    function withoutFee(uint256 amount) external view returns (uint256);
-
-    /// @return The amount with added fee
-    /// @param amount The amount without fee
-    function withFee(uint256 amount) external view returns (uint256);
-
-    /// @return The amount corresponding to the fee from a given amount
+    /// @return The amount corresponding to the fee from a provided `amount`
     /// @param amount The traded amount
     function feeOf(uint256 amount) external view returns (uint256);
 
-    /// @return The amount to collect as fee for the provided amount
+    /// @return The amount to collect as fee for the provided `amount`
     /// @param amount The amount traded
     function feeFor(uint256 amount) external view returns (uint256);
 
+    /// @return The amount available after collecting the fee from the provided `amount`
+    /// @param amount The total amount
+    function withoutFee(uint256 amount) external view returns (uint256);
+
+    /// @return The provided `amount` with added fee
+    /// @param amount The amount without fee
+    function withFee(uint256 amount) external view returns (uint256);
+
     // trade amounts calculation functions
 
-    /// @return The cost of buying the provided buyToken at the provided price. Fees not included
+    /// @return The cost of buying `buyToken` at the provided `price`. Fees not included
     /// @param buyToken The token to buy
-    /// @param amountOut The amount of buyToken to buy
+    /// @param amountOut The return
     /// @param price The buy price
     function costAtPrice(
         address buyToken,
@@ -307,10 +312,10 @@ interface ILimitrVault is IERC721 {
         uint256 price
     ) external view returns (uint256);
 
-    /// @return The amount of tokens than can be purchased with a given amount at price.
-    ///         Fees not included.
+    /// @return The amount of `buyToken` than can be purchased with the provided
+    ///         `amount` at `price`. Fees not included.
     /// @param buyToken The token to buy
-    /// @param amountIn The amount of sellToken to spend
+    /// @param amountIn The cost
     /// @param price The sell price
     function returnAtPrice(
         address buyToken,
@@ -318,10 +323,10 @@ interface ILimitrVault is IERC721 {
         uint256 price
     ) external view returns (uint256);
 
-    /// @notice Cost of buying (from the vault) up to maxAmountOut of the
-    ///         provided token, at a maxPrice (maximum order price). Fees not included
+    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at a `maxPrice`
+    ///         (maximum order price). Fees not included
     /// @param buyToken The token to buy
-    /// @param maxAmountOut The maximum amount of buyToken to buy
+    /// @param maxAmountOut The maximum return
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -331,10 +336,10 @@ interface ILimitrVault is IERC721 {
         uint256 maxPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
-    /// @notice The amount of tokens that can be purchased (from the vault) with up to
-    ///         maxAmountIn, at a maxPrice (maximum order price). Fees not included.
+    /// @notice The amount of `buyToken` that can be purchased with up to
+    ///         `maxAmountIn`, at a `maxPrice` (maximum order price). Fees not included.
     /// @param buyToken The token to buy
-    /// @param maxAmountIn The maximum amount of sellToken to sell
+    /// @param maxAmountIn The maximum cost
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -344,10 +349,10 @@ interface ILimitrVault is IERC721 {
         uint256 maxPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
-    /// @notice Cost of buying (from the vault) up to maxAmountOut of the
-    ///         provided token, at avgPrice (average order price). Fees not included.
+    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at `avgPrice`
+    ///         (average order price). Fees not included.
     /// @param buyToken The token to buy
-    /// @param maxAmountOut The maximum amount of buyToken to buy
+    /// @param maxAmountOut The maximum return
     /// @param avgPrice The max average price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -357,13 +362,14 @@ interface ILimitrVault is IERC721 {
         uint256 avgPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
-    /// @notice The amount of tokens that can be purchased (from the vault) with up to
-    ///         maxAmountIn, at avgPrice (average order price). Fees not included
+    /// @notice The amount `buyToken` that can be purchased with up to `maxAmountIn`,
+    ///         at `avgPrice` (average order price). Fees not included
     /// @param buyToken The token to buy
-    /// @param maxAmountIn The maximum amount of sellToken to sell
+    /// @param maxAmountIn The maximum cost
     /// @param avgPrice The max average price
     /// @return amountIn The cost
     /// @return amountOut The return
+
     function returnAtAvgPrice(
         address buyToken,
         uint256 maxAmountIn,
@@ -387,7 +393,7 @@ interface ILimitrVault is IERC721 {
         uint256 deadline
     ) external returns (uint256);
 
-    /// @notice Creates a new sell order using the provided pointer
+    /// @notice Creates a new sell order using a `pointer`
     /// @param sellToken The token to sell
     /// @param price The order price
     /// @param amount The amount of sellToken to trade
@@ -404,7 +410,7 @@ interface ILimitrVault is IERC721 {
         uint256 pointer
     ) external returns (uint256);
 
-    /// @notice Creates a new sell order using the provided pointers
+    /// @notice Creates a new sell order using an array of possible `pointers`
     /// @param sellToken The token to sell
     /// @param price The order price
     /// @param amount The amount of sellToken to trade
@@ -437,16 +443,16 @@ interface ILimitrVault is IERC721 {
 
     // trading functions
 
-    /// @notice Buys buyToken from the vault with a maximum price (per order),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
+    /// @notice Buys `buyToken` from the vault with a `maxPrice` (per order),
+    ///         spending up to `maxAmountIn`. This function includes the fee in the
+    ///         limit set by `maxAmountIn`
     /// @param buyToken The token to buy
     /// @param maxPrice The price of the trade
-    /// @param maxAmountIn The maximum amount to spend
+    /// @param maxAmountIn The maximum cost
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of buyToken received
+    /// @return received The amount of `buyToken` received
     function buyAtMaxPrice(
         address buyToken,
         uint256 maxPrice,
@@ -455,16 +461,15 @@ interface ILimitrVault is IERC721 {
         uint256 deadline
     ) external returns (uint256 cost, uint256 received);
 
-    /// @notice Buys buyToken from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param buyToken The token to buy
+    /// @notice Buys `buyToken` from the vault with an `avgPrice` (average price),
+    ///         spending up to `maxAmountIn`. This function includes the fee in the
+    ///         limit set by `maxAmountIn`
     /// @param avgPrice, The maximum average price
     /// @param maxAmountIn The maximum amount to spend
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of buyToken received
+    /// @return received The amount of `buyToken` received
     function buyAtAvgPrice(
         address buyToken,
         uint256 avgPrice,
@@ -476,7 +481,7 @@ interface ILimitrVault is IERC721 {
     // trader balances
 
     /// @return The trader balance available to withdraw
-    /// @param token Must be token0 or token1
+    /// @param token Must be `token0` or `token1`
     /// @param trader The trader address
     function traderBalance(address token, address trader)
         external
@@ -484,7 +489,7 @@ interface ILimitrVault is IERC721 {
         returns (uint256);
 
     /// @notice Withdraw trader balance
-    /// @param token Must be token0 or token1
+    /// @param token Must be `token0` or `token1`
     /// @param to The receiver address
     /// @param amount The amount to withdraw
     function withdraw(
@@ -494,12 +499,13 @@ interface ILimitrVault is IERC721 {
     ) external;
 
     /// @notice Withdraw on behalf of a trader. Can only be called by the router
-    /// @param token Must be token0 or token1
+    /// @param token Must be `token0` or `token1`
     /// @param trader The trader to handle
     /// @param amount The amount to withdraw
     function withdrawFor(
         address token,
         address trader,
+        address receiver,
         uint256 amount
     ) external;
 

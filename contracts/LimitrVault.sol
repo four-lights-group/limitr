@@ -49,30 +49,36 @@ contract LimitrVault is ILimitrVault {
     /// @param _token0 The first token of the pair
     /// @param _token1 The second token of the pair
     function initialize(address _token0, address _token1) external override {
-        require(registry == address(0), "already initialized");
-        require(_token0 != _token1, "base and counter tokens are the same");
-        require(_token0 != address(0), "zero address not allowed");
-        require(_token1 != address(0), "zero address not allowed");
+        require(registry == address(0), "LimitrVault: already initialized");
+        require(
+            _token0 != _token1,
+            "LimitrVault: base and counter tokens are the same"
+        );
+        require(_token0 != address(0), "LimitrVault: zero address not allowed");
+        require(_token1 != address(0), "LimitrVault: zero address not allowed");
         token0 = _token0;
         token1 = _token1;
         registry = msg.sender;
         _oneToken[_token0] = 10**IERC20(_token0).decimals();
         _oneToken[_token1] = 10**IERC20(_token1).decimals();
-        feePercentage = 2 * 10**15;
+        feePercentage = 2 * 10**15; // 0.2 %
     }
 
-    /// @return The fee percentage represented as a value between 0 and 1 multiplied by 10^18
+    /// @return The fee percentage represented as a value between 0 and 10^18
     uint256 public override feePercentage;
 
-    /// @notice Set a new fee (must be smaller than the current, for the feeReceiverSetter only)
+    /// @notice Set a new fee (must be smaller than the current, for the `feeReceiverSetter` only)
     ///         Emits a NewFeePercentage event
-    /// @param newFeePercentage The new fee in the format describedin feePercentage
+    /// @param newFeePercentage The new fee in the format described in `feePercentage`
     function setFeePercentage(uint256 newFeePercentage)
         external
         override
         onlyAdmin
     {
-        require(newFeePercentage < feePercentage, "Can only set a smaller fee");
+        require(
+            newFeePercentage < feePercentage,
+            "LimitrVault: can only set a smaller fee"
+        );
         uint256 oldPercentage = feePercentage;
         feePercentage = newFeePercentage;
         emit NewFeePercentage(oldPercentage, newFeePercentage);
@@ -91,20 +97,20 @@ contract LimitrVault is ILimitrVault {
 
     // price listing functions
 
-    /// @return The first price on the order book for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The first price on the order book for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function firstPrice(address token) public view override returns (uint256) {
         return _prices[token].first();
     }
 
-    /// @return The last price on the order book for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The last price on the order book for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function lastPrice(address token) public view override returns (uint256) {
         return _prices[token].last();
     }
 
-    /// @return The previous price to the pointer for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The previous price to the pointer for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     function previousPrice(address token, uint256 current)
         public
@@ -115,8 +121,8 @@ contract LimitrVault is ILimitrVault {
         return _prices[token].previous(current);
     }
 
-    /// @return The next price to the current for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The next price to the current for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     function nextPrice(address token, uint256 current)
         public
@@ -127,8 +133,8 @@ contract LimitrVault is ILimitrVault {
         return _prices[token].next(current);
     }
 
-    /// @return N prices after current for the provided token
-    /// @param token Must be token0 or token1
+    /// @return N prices after current for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     /// @param n The number of prices to return
     function prices(
@@ -149,8 +155,8 @@ contract LimitrVault is ILimitrVault {
         return r;
     }
 
-    /// @return n price pointers for the provided price for the provided token
-    /// @param token Must be token0 or token1
+    /// @return n price pointers for the provided price for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param price The price to insert
     /// @param nPointers The number of pointers to return
     function pricePointers(
@@ -184,20 +190,20 @@ contract LimitrVault is ILimitrVault {
 
     // orders listing functions
 
-    /// @return The ID of the first order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the first order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function firstOrder(address token) public view override returns (uint256) {
         return _orders[token].first();
     }
 
-    /// @return The ID of the last order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the last order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     function lastOrder(address token) public view override returns (uint256) {
         return _orders[token].last();
     }
 
-    /// @return The ID of the previous order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the previous order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param currentID Pointer to the current order
     function previousOrder(address token, uint256 currentID)
         public
@@ -208,8 +214,8 @@ contract LimitrVault is ILimitrVault {
         return _orders[token].previous(currentID);
     }
 
-    /// @return The ID of the next order for the provided token
-    /// @param token Must be token0 or token1
+    /// @return The ID of the next order for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param currentID Pointer to the current order
     function nextOrder(address token, uint256 currentID)
         public
@@ -220,8 +226,8 @@ contract LimitrVault is ILimitrVault {
         return _orders[token].next(currentID);
     }
 
-    /// @notice Returns n order IDs from the current for the provided token
-    /// @param token Must be token0 or token1
+    /// @notice Returns n order IDs from the current for the provided `token`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current ID
     /// @param n The number of IDs to return
     function orders(
@@ -242,8 +248,9 @@ contract LimitrVault is ILimitrVault {
         return r;
     }
 
-    /// @notice Returns the order data for n orders of the provided token, starting after current
-    /// @param token Must be token0 or token1
+    /// @notice Returns the order data for `n` orders of the provided `token`,
+    ///         starting after `current`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current ID
     /// @param n The number of IDs to return
     /// @return id Array of order IDs
@@ -283,7 +290,7 @@ contract LimitrVault is ILimitrVault {
         }
     }
 
-    /// @return Returns the token for sale of the provided orderID
+    /// @return Returns the token for sale of the provided `orderID`
     /// @param orderID The order ID
     function orderToken(uint256 orderID)
         public
@@ -301,20 +308,20 @@ contract LimitrVault is ILimitrVault {
     /// @return The last assigned order ID
     uint256 public override lastID;
 
-    /// volume functions
+    /// liquidity functions
 
-    /// @return Return the available volume at a particular price, for the provided token
+    /// @return Return the available liquidity at a particular price, for the provided `token`
     mapping(address => mapping(uint256 => uint256))
         public
-        override volumeByPrice;
+        override liquidityByPrice;
 
-    /// @notice Return the available volume until maxPrice
-    /// @param token Must be token0 or token1
+    /// @notice Return the available liquidity until `maxPrice`
+    /// @param token Must be `token0` or `token1`
     /// @param current The current price
     /// @param n The number of prices to return
     /// @return price Array of prices
-    /// @return volume Array of volumes
-    function volume(
+    /// @return priceLiquidity Array of liquidity
+    function liquidity(
         address token,
         uint256 current,
         uint256 n
@@ -322,27 +329,27 @@ contract LimitrVault is ILimitrVault {
         external
         view
         override
-        returns (uint256[] memory price, uint256[] memory volume)
+        returns (uint256[] memory price, uint256[] memory priceLiquidity)
     {
         uint256 c = current;
         price = new uint256[](n);
-        volume = new uint256[](n);
+        priceLiquidity = new uint256[](n);
         for (uint256 i = 0; i < n; i++) {
             c = _prices[token].next(c);
             if (c == 0) {
                 break;
             }
             price[i] = c;
-            volume[i] = volumeByPrice[token][c];
+            priceLiquidity[i] = liquidityByPrice[token][c];
         }
     }
 
-    /// @return The total volume available for the provided token
-    mapping(address => uint256) public override totalVolume;
+    /// @return The total liquidity available for the provided `token`
+    mapping(address => uint256) public override totalLiquidity;
 
     // trader order listing functions
 
-    /// @return The ID of the first order of the trader for the provided token
+    /// @return The ID of the first order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     function firstTraderOrder(address token, address trader)
@@ -351,10 +358,10 @@ contract LimitrVault is ILimitrVault {
         override
         returns (uint256)
     {
-        return _tradersOrders[token][trader].first();
+        return _traderOrders[token][trader].first();
     }
 
-    /// @return The ID of the last order of the trader
+    /// @return The ID of the last order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     function lastTraderOrder(address token, address trader)
@@ -363,10 +370,10 @@ contract LimitrVault is ILimitrVault {
         override
         returns (uint256)
     {
-        return _tradersOrders[token][trader].last();
+        return _traderOrders[token][trader].last();
     }
 
-    /// @return The ID of the previous order of the trader for the provided token
+    /// @return The ID of the previous order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     /// @param currentID Pointer to a trade
@@ -375,10 +382,10 @@ contract LimitrVault is ILimitrVault {
         address trader,
         uint256 currentID
     ) public view override returns (uint256) {
-        return _tradersOrders[token][trader].previous(currentID);
+        return _traderOrders[token][trader].previous(currentID);
     }
 
-    /// @return The ID of the next order of the trader for the provided token
+    /// @return The ID of the next order of the `trader` for the provided `token`
     /// @param token The token to list
     /// @param trader The trader
     /// @param currentID Pointer to a trade
@@ -387,11 +394,11 @@ contract LimitrVault is ILimitrVault {
         address trader,
         uint256 currentID
     ) public view override returns (uint256) {
-        return _tradersOrders[token][trader].next(currentID);
+        return _traderOrders[token][trader].next(currentID);
     }
 
-    /// @notice Returns n trader order IDs from the current for the provided token
-    /// @param token The token to list
+    /// @notice Returns n order IDs from `current` for the provided `token`
+    /// @param token The `token` to list
     /// @param trader The trader
     /// @param current The current ID
     /// @param n The number of IDs to return
@@ -403,7 +410,7 @@ contract LimitrVault is ILimitrVault {
     ) external view override returns (uint256[] memory) {
         uint256 c = current;
         uint256[] memory r = new uint256[](n);
-        DLL storage traderOrderList = _tradersOrders[token][trader];
+        DLL storage traderOrderList = _traderOrders[token][trader];
         for (uint256 i = 0; i < n; i++) {
             c = traderOrderList.next(c);
             if (c == 0) {
@@ -416,7 +423,7 @@ contract LimitrVault is ILimitrVault {
 
     // fee calculation functions
 
-    /// @return The amount corresponding to the fee from a given amount
+    /// @return The amount corresponding to the fee from a provided `amount`
     /// @param amount The traded amount
     function feeOf(uint256 amount) public view override returns (uint256) {
         if (feePercentage == 0 || amount == 0) {
@@ -425,7 +432,7 @@ contract LimitrVault is ILimitrVault {
         return (amount * feePercentage) / 10**18;
     }
 
-    /// @return The amount to collect as fee for the provided amount
+    /// @return The amount to collect as fee for the provided `amount`
     /// @param amount The amount traded
     function feeFor(uint256 amount) public view override returns (uint256) {
         if (feePercentage == 0 || amount == 0) {
@@ -434,13 +441,13 @@ contract LimitrVault is ILimitrVault {
         return (amount * feePercentage) / (10**18 - feePercentage);
     }
 
-    /// @return The amount available after collecting the fee
+    /// @return The amount available after collecting the fee from the provided `amount`
     /// @param amount The total amount
     function withoutFee(uint256 amount) public view override returns (uint256) {
         return amount - feeOf(amount);
     }
 
-    /// @return The amount with added fee
+    /// @return The provided `amount` with added fee
     /// @param amount The amount without fee
     function withFee(uint256 amount) public view override returns (uint256) {
         return amount + feeFor(amount);
@@ -448,9 +455,9 @@ contract LimitrVault is ILimitrVault {
 
     // trade amounts calculation functions
 
-    /// @return The cost of buying the provided buyToken at the provided price. Fees not included
+    /// @return The cost of buying `buyToken` at the provided `price`. Fees not included
     /// @param buyToken The token to buy
-    /// @param amountOut The amount of buyToken to buy
+    /// @param amountOut The return
     /// @param price The buy price
     function costAtPrice(
         address buyToken,
@@ -463,10 +470,10 @@ contract LimitrVault is ILimitrVault {
         return (price * amountOut) / _oneToken[buyToken];
     }
 
-    /// @return The amount of tokens than can be purchased with a given amount at price
-    ///         Fees not included.
+    /// @return The amount of `buyToken` than can be purchased with the provided
+    ///         `amount` at `price`. Fees not included.
     /// @param buyToken The token to buy
-    /// @param amountIn The amount of sellToken to spend
+    /// @param amountIn The cost
     /// @param price The sell price
     function returnAtPrice(
         address buyToken,
@@ -479,10 +486,10 @@ contract LimitrVault is ILimitrVault {
         return (_oneToken[buyToken] * amountIn) / price;
     }
 
-    /// @notice Cost of buying (from the vault) up to maxAmountOut of the
-    ///         provided token, at a maxPrice (maximum order price). Fees not included
+    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at a `maxPrice`
+    ///         (maximum order price). Fees not included
     /// @param buyToken The token to buy
-    /// @param maxAmountOut The maximum amount of buyToken to buy
+    /// @param maxAmountOut The maximum return
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -499,10 +506,10 @@ contract LimitrVault is ILimitrVault {
             );
     }
 
-    /// @notice The amount of tokens that can be purchased (from the vault) with up to
-    ///         maxAmountIn, at a maxPrice (maximum order price). Fees not included.
+    /// @notice The amount of `buyToken` that can be purchased with up to
+    ///         `maxAmountIn`, at a `maxPrice` (maximum order price). Fees not included.
     /// @param buyToken The token to buy
-    /// @param maxAmountIn The maximum amount of sellToken to sell
+    /// @param maxAmountIn The maximum cost
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -514,48 +521,10 @@ contract LimitrVault is ILimitrVault {
         return _returnAtMaxPrice(buyToken, maxAmountIn, maxPrice);
     }
 
-    function _returnAtMaxPrice(
-        address buyToken,
-        uint256 maxAmountIn,
-        uint256 maxPrice
-    ) internal view returns (uint256 amountIn, uint256 amountOut) {
-        uint256 orderID = 0;
-        Order memory _order;
-        DLL storage orderList = _orders[buyToken];
-        while (true) {
-            orderID = orderList.next(orderID);
-            if (orderID == 0) {
-                break;
-            }
-            _order = orderInfo[buyToken][orderID];
-            if (_order.trader == address(0)) {
-                break;
-            }
-            if (_order.price > maxPrice) {
-                break;
-            }
-            uint256 buyAmount = returnAtPrice(
-                buyToken,
-                maxAmountIn,
-                _order.price
-            );
-            if (buyAmount > _order.amount) {
-                buyAmount = _order.amount;
-            }
-            amountOut += buyAmount;
-            uint256 price = costAtPrice(buyToken, buyAmount, _order.price);
-            amountIn += price;
-            maxAmountIn -= price;
-            if (maxAmountIn == 0) {
-                break;
-            }
-        }
-    }
-
-    /// @notice Cost of buying (from the vault) up to maxAmountOut of the
-    ///         provided token, at avgPrice (average order price). Fees not included.
+    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at `avgPrice`
+    ///         (average order price). Fees not included.
     /// @param buyToken The token to buy
-    /// @param maxAmountOut The maximum amount of buyToken to buy
+    /// @param maxAmountOut The maximum return
     /// @param avgPrice The max average price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -572,10 +541,10 @@ contract LimitrVault is ILimitrVault {
             );
     }
 
-    /// @notice The amount of tokens that can be purchased (from the vault) with up to
-    ///         maxAmountIn, at avgPrice (average order price). Fees not included
+    /// @notice The amount `buyToken` that can be purchased with up to `maxAmountIn`,
+    ///         at `avgPrice` (average order price). Fees not included
     /// @param buyToken The token to buy
-    /// @param maxAmountIn The maximum amount of sellToken to sell
+    /// @param maxAmountIn The maximum cost
     /// @param avgPrice The max average price
     /// @return amountIn The cost
     /// @return amountOut The return
@@ -588,34 +557,6 @@ contract LimitrVault is ILimitrVault {
     }
 
     // order creation functions
-
-    /// @notice Creates a new sell order using the provided pointer
-    /// @param sellToken The token to sell
-    /// @param price The order price
-    /// @param amount The amount of sellToken to trade
-    /// @param trader The owner of the order
-    /// @param deadline Validity deadline
-    /// @param pointer The start pointer
-    /// @return The order ID
-    function newSellOrderWithPointer(
-        address sellToken,
-        uint256 price,
-        uint256 amount,
-        address trader,
-        uint256 deadline,
-        uint256 pointer
-    ) public override returns (uint256) {
-        (uint256 orderID, bool created) = _newSellOrderWithPointer(
-            sellToken,
-            price,
-            amount,
-            trader,
-            deadline,
-            pointer
-        );
-        require(created, "can" "t create new order");
-        return orderID;
-    }
 
     /// @notice Creates a new sell order order using 0 as price pointer
     /// @param sellToken The token to sell
@@ -639,11 +580,39 @@ contract LimitrVault is ILimitrVault {
             deadline,
             0
         );
-        require(created, "can" "t create new order");
+        require(created, "LimitrVault: can't create new order");
         return orderID;
     }
 
-    /// @notice Creates a new sell order using the provided pointers
+    /// @notice Creates a new sell order using a `pointer`
+    /// @param sellToken The token to sell
+    /// @param price The order price
+    /// @param amount The amount of sellToken to trade
+    /// @param trader The owner of the order
+    /// @param deadline Validity deadline
+    /// @param pointer The start pointer
+    /// @return The order ID
+    function newSellOrderWithPointer(
+        address sellToken,
+        uint256 price,
+        uint256 amount,
+        address trader,
+        uint256 deadline,
+        uint256 pointer
+    ) public override returns (uint256) {
+        (uint256 orderID, bool created) = _newSellOrderWithPointer(
+            sellToken,
+            price,
+            amount,
+            trader,
+            deadline,
+            pointer
+        );
+        require(created, "LimitrVault: can't create new order");
+        return orderID;
+    }
+
+    /// @notice Creates a new sell order using an array of possible `pointers`
     /// @param sellToken The token to sell
     /// @param price The order price
     /// @param amount The amount of sellToken to trade
@@ -672,7 +641,7 @@ contract LimitrVault is ILimitrVault {
                 return orderID;
             }
         }
-        revert("can" "t create new order");
+        revert("LimitrVault: can" "t create new order");
     }
 
     // order cancellation functions
@@ -697,16 +666,16 @@ contract LimitrVault is ILimitrVault {
 
     // trading functions
 
-    /// @notice Buys buyToken from the vault with a maximum price (per order),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
+    /// @notice Buys `buyToken` from the vault with a `maxPrice` (per order),
+    ///         spending up to `maxAmountIn`. This function includes the fee in the
+    ///         limit set by `maxAmountIn`
     /// @param buyToken The token to buy
     /// @param maxPrice The price of the trade
-    /// @param maxAmountIn The maximum amount to spend
+    /// @param maxAmountIn The maximum cost
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of buyToken received
+    /// @return received The amount of `buyToken` received
     function buyAtMaxPrice(
         address buyToken,
         uint256 maxPrice,
@@ -721,100 +690,25 @@ contract LimitrVault is ILimitrVault {
         lock
         returns (uint256, uint256)
     {
-        TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        while (trade.availableAmountIn > 0) {
-            // get the order ID
-            uint256 orderID = _orders[buyToken].first();
-            if (orderID == 0) {
-                break;
-            }
-            // get the order
-            Order memory _order = orderInfo[buyToken][orderID];
-            // check price
-            if (_order.price > maxPrice) {
-                break;
-            }
-            // max amount of the base token that can be purchased with the
-            uint256 buyAmount = returnAtPrice(
+        return
+            _trade(
                 buyToken,
-                trade.availableAmountIn,
-                _order.price
+                maxPrice,
+                maxAmountIn,
+                receiver,
+                _getTradeAmountsMaxPrice
             );
-            if (buyAmount == 0) {
-                break;
-            }
-            if (buyAmount > _order.amount) {
-                buyAmount = _order.amount;
-            }
-            uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
-            if (cost > trade.availableAmountIn) {
-                cost = trade.availableAmountIn;
-                buyAmount = returnAtPrice(buyToken, cost, _order.price);
-            }
-            _order.amount -= buyAmount;
-            _updateTraderBalance(
-                buyToken == token0 ? token1 : token0,
-                _order.trader,
-                cost
-            );
-            _updateVolume(buyToken, _order.price, cost);
-            _updateOrderList(buyToken, orderID, _order.amount);
-            trade.update(cost, buyAmount);
-            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
-        }
-        require(trade.amountIn > 0 && trade.amountOut > 0, "No trade");
-        uint256 fee = feeFor(trade.amountIn);
-        assert(trade.amountIn + fee <= maxAmountIn);
-        address sellToken = buyToken == token0 ? token1 : token0;
-        _depositToken(sellToken, msg.sender, trade.amountIn);
-        _tokenTransferFrom(
-            sellToken,
-            msg.sender,
-            ILimitrRegistry(registry).feeReceiver(),
-            fee
-        );
-        _withdrawToken(buyToken, receiver, trade.amountOut);
-        return (trade.amountIn + fee, trade.amountOut);
     }
 
-    function _updateTraderBalance(
-        address token,
-        address owner,
-        uint256 cost
-    ) internal {
-        traderBalance[token][owner] += cost;
-    }
-
-    function _updateVolume(
-        address token,
-        uint256 price,
-        uint256 amount
-    ) internal {
-        volumeByPrice[token][price] -= amount;
-        totalVolume[token] -= amount;
-    }
-
-    function _updateOrderList(
-        address token,
-        uint256 orderID,
-        uint256 newAmount
-    ) internal {
-        if (newAmount == 0) {
-            _removeOrder(token, orderID);
-        } else {
-            orderInfo[token][orderID].amount = newAmount;
-        }
-    }
-
-    /// @notice Buys buyToken from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
+    /// @notice Buys `buyToken` from the vault with an `avgPrice` (average price),
+    ///         spending up to `maxAmountIn`. This function includes the fee in the
+    ///         limit set by `maxAmountIn`
     /// @param avgPrice, The maximum average price
     /// @param maxAmountIn The maximum amount to spend
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of buyToken received
+    /// @return received The amount of `buyToken` received
     function buyAtAvgPrice(
         address buyToken,
         uint256 avgPrice,
@@ -829,57 +723,82 @@ contract LimitrVault is ILimitrVault {
         lock
         returns (uint256, uint256)
     {
-        TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        while (trade.availableAmountIn > 0) {
-            // get the order ID
-            uint256 orderID = _orders[buyToken].first();
-            if (orderID == 0) {
-                break;
-            }
-            // get the order
-            Order memory _order = orderInfo[buyToken][orderID];
-            // max amount of the base token that can be purchased
-            uint256 buyAmount = _maxAmountAvgPrice(
+        return
+            _trade(
                 buyToken,
                 avgPrice,
-                trade,
-                _order.price
+                maxAmountIn,
+                receiver,
+                _getTradeAmountsAvgPrice
             );
-            if (buyAmount == 0) {
-                break;
-            }
-            if (buyAmount > _order.amount) {
-                buyAmount = _order.amount;
-            }
-            uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
-            if (cost > trade.availableAmountIn) {
-                cost = trade.availableAmountIn;
-                buyAmount = returnAtPrice(buyToken, cost, _order.price);
-            }
-            _order.amount -= buyAmount;
-            _updateTraderBalance(
-                buyToken == token0 ? token1 : token0,
-                _order.trader,
-                cost
-            );
-            _updateVolume(buyToken, _order.price, cost);
-            _updateOrderList(buyToken, orderID, _order.amount);
-            trade.update(cost, buyAmount);
-            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
+    }
+
+    // trader balances
+
+    /// @return The trader balance available to withdraw
+    mapping(address => mapping(address => uint256))
+        public
+        override traderBalance;
+
+    /// @notice Withdraw trader balance
+    /// @param token Must be `token0` or `token1`
+    /// @param to The receiver address
+    /// @param amount The amount to withdraw
+    function withdraw(
+        address token,
+        address to,
+        uint256 amount
+    ) external override lock {
+        _withdraw(token, msg.sender, to, amount);
+    }
+
+    /// @notice Withdraw on behalf of a trader. Can only be called by the router
+    /// @param token Must be `token0` or `token1`
+    /// @param trader The trader to handle
+    /// @param receiver The receiver of the tokens
+    /// @param amount The amount to withdraw
+    function withdrawFor(
+        address token,
+        address trader,
+        address receiver,
+        uint256 amount
+    ) external override {
+        address router = ILimitrRegistry(registry).router();
+        require(msg.sender == router, "LimitrVault: not the router");
+        _withdraw(token, trader, receiver, amount);
+    }
+
+    /// @return If an address is allowed to handle a order
+    /// @param sender The sender address
+    /// @param tokenId The orderID / tokenId
+    function isAllowed(address sender, uint256 tokenId)
+        public
+        view
+        override
+        returns (bool)
+    {
+        address owner = ownerOf(tokenId);
+        return
+            sender == owner ||
+            isApprovedForAll[owner][sender] ||
+            sender == _approvals[tokenId] ||
+            sender == ILimitrRegistry(registry).router();
+    }
+
+    /// @return The version of the vault implementation
+    function implementationVersion() external pure override returns (uint16) {
+        return 1;
+    }
+
+    /// @return The address of the vault implementation
+    function implementationAddress() external view override returns (address) {
+        bytes memory code = address(this).code;
+        require(code.length == 51, "LimitrVault: expecting 51 bytes of code");
+        uint160 r;
+        for (uint256 i = 11; i < 31; i++) {
+            r = (r << 8) | uint8(code[i]);
         }
-        require(trade.amountIn > 0 && trade.amountOut > 0, "No trade");
-        uint256 fee = feeFor(trade.amountIn);
-        assert(trade.amountIn + fee <= maxAmountIn);
-        address sellToken = buyToken == token0 ? token1 : token0;
-        _depositToken(sellToken, msg.sender, trade.amountIn);
-        _tokenTransferFrom(
-            sellToken,
-            msg.sender,
-            ILimitrRegistry(registry).feeReceiver(),
-            fee
-        );
-        _withdrawToken(buyToken, receiver, trade.amountOut);
-        return (trade.amountIn + fee, trade.amountOut);
+        return address(r);
     }
 
     // ERC165
@@ -912,7 +831,7 @@ contract LimitrVault is ILimitrVault {
         public
         view
         override
-        ERC721tokenMustExist(tokenId)
+        ERC721TokenMustExist(tokenId)
         returns (address)
     {
         address t = orderInfo[token0][tokenId].trader;
@@ -931,7 +850,7 @@ contract LimitrVault is ILimitrVault {
         require(to != owner, "ERC721: approval to current owner");
         bool allowed = msg.sender == owner ||
             isApprovedForAll[owner][msg.sender];
-        require(allowed, "not the owner or operator");
+        require(allowed, "ERC721: not the owner or operator");
         _ERC721Approve(owner, to, tokenId);
     }
 
@@ -943,7 +862,7 @@ contract LimitrVault is ILimitrVault {
         public
         view
         override
-        ERC721tokenMustExist(tokenId)
+        ERC721TokenMustExist(tokenId)
         returns (address)
     {
         return _approvals[tokenId];
@@ -956,7 +875,7 @@ contract LimitrVault is ILimitrVault {
         public
         override
     {
-        require(msg.sender != operator, "can" "t approve yourself");
+        require(msg.sender != operator, "ERC721: can't approve yourself");
         isApprovedForAll[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
     }
@@ -1002,90 +921,30 @@ contract LimitrVault is ILimitrVault {
         _ERC721SafeTransfer(from, to, tokenId, _data);
     }
 
-    /// @return If an address is allowed to handle a order
-    /// @param sender The sender address
-    /// @param tokenId The orderID / tokenId
-    function isAllowed(address sender, uint256 tokenId)
-        public
-        view
-        override
-        returns (bool)
-    {
-        address owner = ownerOf(tokenId);
-        return
-            sender == owner ||
-            isApprovedForAll[owner][sender] ||
-            sender == _approvals[tokenId] ||
-            sender == ILimitrRegistry(registry).router();
-    }
-
-    // trader balances
-
-    /// @return The trader balance available to withdraw
-    mapping(address => mapping(address => uint256))
-        public
-        override traderBalance;
-
-    /// @notice Withdraw trader balance
-    /// @param token Must be token0 or token1
-    /// @param to The receiver address
-    /// @param amount The amount to withdraw
-    function withdraw(
-        address token,
-        address to,
-        uint256 amount
-    ) external override lock {
-        _withdraw(token, msg.sender, to, amount);
-    }
-
-    /// @notice Withdraw on behalf of a trader. Can only be called by the router
-    /// @param token Must be token0 or token1
-    /// @param trader The trader to handle
-    /// @param amount The amount to withdraw
-    function withdrawFor(
-        address token,
-        address trader,
-        uint256 amount
-    ) external override {
-        address router = ILimitrRegistry(registry).router();
-        require(msg.sender == router, "not the router");
-        _withdraw(token, trader, router, amount);
-    }
-
-    /// @return The version of the vault implementation
-    function implementationVersion() external pure override returns (uint16) {
-        return 1;
-    }
-
-    /// @return The address of the vault implementation
-    function implementationAddress() external view override returns (address) {
-        bytes memory code = address(this).code;
-        require(code.length == 51, "expecting 51 bytes of code");
-        uint160 r;
-        for (uint256 i = 11; i < 31; i++) {
-            r = (r << 8) | uint8(code[i]);
-        }
-        return address(r);
-    }
-
     // modifiers
 
     modifier validToken(address token) {
-        require(token == token0 || token == token1, "invalid token");
+        require(
+            token == token0 || token == token1,
+            "LimitrVault: invalid token"
+        );
         _;
     }
 
     modifier onlyAdmin() {
         require(
             msg.sender == ILimitrRegistry(registry).admin(),
-            "Only for the admin"
+            "LimitrVault: only for the admin"
         );
         _;
     }
 
     modifier withinDeadline(uint256 deadline) {
         if (deadline > 0) {
-            require(block.timestamp <= deadline, "Past the deadline");
+            require(
+                block.timestamp <= deadline,
+                "LimitrVault: past the deadline"
+            );
         }
         _;
     }
@@ -1093,7 +952,7 @@ contract LimitrVault is ILimitrVault {
     bool internal _locked;
 
     modifier lock() {
-        require(!_locked, "already locked");
+        require(!_locked, "LimitrVault: already locked");
         _locked = true;
         _;
         _locked = false;
@@ -1103,19 +962,19 @@ contract LimitrVault is ILimitrVault {
         _;
         require(
             IERC20(token).balanceOf(address(this)) >= _expectedBalance[token],
-            "ERROR: Deflationary token"
+            "LimitrVault:  Deflationary token"
         );
     }
 
     modifier senderAllowed(uint256 tokenId) {
         require(
             isAllowed(msg.sender, tokenId),
-            "not the owner, approved or operator"
+            "ERC721: not the owner, approved or operator"
         );
         _;
     }
 
-    modifier ERC721tokenMustExist(uint256 tokenId) {
+    modifier ERC721TokenMustExist(uint256 tokenId) {
         require(
             orderToken(tokenId) != address(0),
             "ERC721: token does not exist"
@@ -1135,7 +994,7 @@ contract LimitrVault is ILimitrVault {
 
     mapping(address => DLL) internal _orders;
 
-    mapping(address => mapping(address => DLL)) internal _tradersOrders;
+    mapping(address => mapping(address => DLL)) internal _traderOrders;
 
     mapping(uint256 => address) private _approvals;
 
@@ -1147,9 +1006,11 @@ contract LimitrVault is ILimitrVault {
     ) internal {
         require(
             traderBalance[token][sender] >= amount,
-            "can"
-            "t withdraw(): not enough balance"
+            "LimitrVault: can't withdraw(): not enough balance"
         );
+        if (amount == 0) {
+            amount = traderBalance[token][sender];
+        }
         traderBalance[token][sender] -= amount;
         _withdrawToken(token, to, amount);
     }
@@ -1160,7 +1021,7 @@ contract LimitrVault is ILimitrVault {
         uint256 amount
     ) internal {
         bool ok = IERC20(token).transfer(to, amount);
-        require(ok, "can" "t transfer()");
+        require(ok, "LimitrVault: can't transfer()");
     }
 
     function _tokenTransferFrom(
@@ -1170,7 +1031,7 @@ contract LimitrVault is ILimitrVault {
         uint256 amount
     ) internal {
         bool ok = IERC20(token).transferFrom(from, to, amount);
-        require(ok, "can" "t transferFrom()");
+        require(ok, "LimitrVault: can't transferFrom()");
     }
 
     /// @dev withdraw a token, accounting for the balance
@@ -1242,9 +1103,9 @@ contract LimitrVault is ILimitrVault {
         address trader,
         uint256 pointer
     ) internal returns (uint256, bool) {
-        require(trader != address(0), "zero address not allowed");
-        require(amount > 0, "zero amount not allowed");
-        require(price > 0, "zero price not allowed");
+        require(trader != address(0), "LimitrVault: zero address not allowed");
+        require(amount > 0, "LimitrVault: zero amount not allowed");
+        require(price > 0, "LimitrVault: zero price not allowed");
         // validate pointer
         if (pointer != 0 && _lastOrder[sellToken][pointer] == 0) {
             return (0, false);
@@ -1252,17 +1113,19 @@ contract LimitrVault is ILimitrVault {
         // save the order
         uint256 orderID = _nextID();
         orderInfo[sellToken][orderID] = Order(price, amount, trader);
-        // insert order
+        // insert order into the order list and insert the price in the
+        // price list if necessary
         if (!_insertOrder(sellToken, orderID, price, pointer)) {
             return (0, false);
         }
-        // insert order in the trader's orders
-        _tradersOrders[sellToken][trader].insertEnd(orderID);
+        // insert order in the trader orders
+        _traderOrders[sellToken][trader].insertEnd(orderID);
+        // update erc721 balance
         balanceOf[trader] += 1;
         emit Transfer(address(0), trader, orderID);
-        // update the volume by price
-        volumeByPrice[sellToken][price] += amount;
-        totalVolume[sellToken] += amount;
+        // update the liquidity info
+        liquidityByPrice[sellToken][price] += amount;
+        totalLiquidity[sellToken] += amount;
         return (orderID, true);
     }
 
@@ -1273,8 +1136,10 @@ contract LimitrVault is ILimitrVault {
         uint256 pointer
     ) internal returns (bool) {
         mapping(uint256 => uint256) storage _last = _lastOrder[sellToken];
+        // the insert point is after the last order at the same price
         uint256 _prevID = _last[price];
         if (_prevID == 0) {
+            // price doesn't exist. insert it
             if (pointer != 0 && _last[pointer] == 0) {
                 return false;
             }
@@ -1295,20 +1160,25 @@ contract LimitrVault is ILimitrVault {
         uint256 amount
     ) internal {
         Order memory _order = orderInfo[sellToken][orderID];
+        // can only cancel up to the amount of the order
         require(
             _order.amount >= amount,
-            "can"
-            "t cancel a bigger amount than the order size"
+            "LimitrVault: can't cancel a bigger amount than the order size"
         );
+        // 0 means full amount
         uint256 _amount = amount != 0 ? amount : _order.amount;
         uint256 remAmount = _order.amount - _amount;
         if (remAmount == 0) {
+            // remove the order from the list. remove the price also if no
+            // other order exists at the same price
             _removeOrder(sellToken, orderID);
         } else {
+            // update the available amount
             orderInfo[sellToken][orderID].amount = remAmount;
         }
-        volumeByPrice[sellToken][_order.price] -= _amount;
-        totalVolume[sellToken] -= _amount;
+        // update the available liquidity info
+        liquidityByPrice[sellToken][_order.price] -= _amount;
+        totalLiquidity[sellToken] -= _amount;
         emit OrderCanceled(sellToken, orderID, _amount);
     }
 
@@ -1317,13 +1187,18 @@ contract LimitrVault is ILimitrVault {
         uint256 orderPrice = orderInfo[sellToken][orderID].price;
         address orderTrader = orderInfo[sellToken][orderID].trader;
         DLL storage orderList = _orders[sellToken];
+        // find previous order
         uint256 _prevID = orderList.previous(orderID);
+        // is the previous order at the same price?
         bool prevPriceNotEqual = orderPrice !=
             orderInfo[sellToken][_prevID].price;
+        // single order at the price
         bool onlyOrderAtPrice = prevPriceNotEqual &&
             orderPrice != orderInfo[sellToken][orderList.next(orderID)].price;
+        // delete the order and remove it from the list
         delete orderInfo[sellToken][orderID];
         orderList.remove(orderID);
+        // update _last
         mapping(uint256 => uint256) storage _last = _lastOrder[sellToken];
         if (_last[orderPrice] == orderID) {
             if (prevPriceNotEqual) {
@@ -1333,40 +1208,17 @@ contract LimitrVault is ILimitrVault {
             }
         }
         if (onlyOrderAtPrice) {
+            // remove price
             _prices[sellToken].remove(orderPrice);
         }
-        _tradersOrders[sellToken][orderTrader].remove(orderID);
+        // update trader orders and ERC721 balance
+        _traderOrders[sellToken][orderTrader].remove(orderID);
         balanceOf[orderTrader] -= 1;
         emit Transfer(orderTrader, address(0), orderID);
     }
 
-    // /// @dev trade the first order at an average price
-    // function _tradeFirstOrderAvgPrice(
-    //     address buyToken,
-    //     uint256 avgPrice,
-    //     TradeHandler memory trade
-    // ) internal returns (bool) {
-    //     // get the order ID
-    //     uint256 orderID = _orders[buyToken].first();
-    //     if (orderID == 0) {
-    //         return false;
-    //     }
-    //     // get the order
-    //     Order memory _order = orderInfo[buyToken][orderID];
-    //     // // max amount of the base token that can be purchased with the
-    //     // // remaining amount of counter token
-    //     // uint256 maxAmount = _maxAmountAvgPrice(
-    //     //     buyToken,
-    //     //     avgPrice,
-    //     //     trade,
-    //     //     _order.price
-    //     // );
-    //     // if (maxAmount == 0) {
-    //     //     return false;
-    //     // }
-    //     // return _tradeOrder(buyToken, orderID, _order, trade, maxAmount);
-    // }
-
+    /// @dev The maximum amount that can be purchased of `buyToken` at `avgPrice`
+    ///      accounting for the current `trade` at a particular `orderPrice`
     function _maxAmountAvgPrice(
         address buyToken,
         uint256 avgPrice,
@@ -1387,6 +1239,7 @@ contract LimitrVault is ILimitrVault {
         uint256 a = 10**18 * _oneToken[buyToken] * trade.amountIn;
         uint256 remPercentage = 10**18 - feePercentage;
         uint256 t = remPercentage * avgPrice * trade.amountOut;
+        // avoid converting to signed int
         a = a > t ? a - t : t - a;
         uint256 b = 10**18 * orderPrice;
         t = remPercentage * avgPrice;
@@ -1411,19 +1264,23 @@ contract LimitrVault is ILimitrVault {
         address from,
         address to,
         uint256 tokenId
-    ) internal lock ERC721tokenMustExist(tokenId) senderAllowed(tokenId) {
+    ) internal lock ERC721TokenMustExist(tokenId) senderAllowed(tokenId) {
         require(
             ownerOf(tokenId) == from,
             "ERC721: transfer of token that is not own"
         );
         require(to != address(0), "ERC721: transfer to the zero address");
+        // reset approval for the order
         _approvals[tokenId] = address(0);
+        // update balances
         balanceOf[from] -= 1;
         balanceOf[to] += 1;
+        // update order
         address t = orderToken(tokenId);
         orderInfo[t][tokenId].trader = to;
-        _tradersOrders[t][from].remove(tokenId);
-        _tradersOrders[t][to].insertEnd(tokenId);
+        // update trader orders
+        _traderOrders[t][from].remove(tokenId);
+        _traderOrders[t][to].insertEnd(tokenId);
         emit Transfer(from, to, tokenId);
     }
 
@@ -1456,6 +1313,44 @@ contract LimitrVault is ILimitrVault {
             return retval == IERC721Receiver.onERC721Received.selector;
         } catch {
             return false;
+        }
+    }
+
+    function _returnAtMaxPrice(
+        address buyToken,
+        uint256 maxAmountIn,
+        uint256 maxPrice
+    ) internal view returns (uint256 amountIn, uint256 amountOut) {
+        uint256 orderID = 0;
+        Order memory _order;
+        DLL storage orderList = _orders[buyToken];
+        while (true) {
+            orderID = orderList.next(orderID);
+            if (orderID == 0) {
+                break;
+            }
+            _order = orderInfo[buyToken][orderID];
+            if (_order.trader == address(0)) {
+                break;
+            }
+            if (_order.price > maxPrice) {
+                break;
+            }
+            uint256 buyAmount = returnAtPrice(
+                buyToken,
+                maxAmountIn,
+                _order.price
+            );
+            if (buyAmount > _order.amount) {
+                buyAmount = _order.amount;
+            }
+            amountOut += buyAmount;
+            uint256 price = costAtPrice(buyToken, buyAmount, _order.price);
+            amountIn += price;
+            maxAmountIn -= price;
+            if (maxAmountIn == 0) {
+                break;
+            }
         }
     }
 
@@ -1504,5 +1399,134 @@ contract LimitrVault is ILimitrVault {
             }
         }
         return (trade.amountIn, trade.amountOut);
+    }
+
+    function _trade(
+        address buyToken,
+        uint256 price,
+        uint256 maxAmountIn,
+        address receiver,
+        function(address, Order memory, TradeHandler memory, uint256)
+            view
+            returns (uint256, uint256) _getTradeAmounts
+    ) internal returns (uint256 amountIn, uint256 amountOut) {
+        TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
+        address sellToken = buyToken == token0 ? token1 : token0;
+        while (trade.availableAmountIn > 0) {
+            // get the order ID
+            uint256 orderID = _orders[buyToken].first();
+            if (orderID == 0) {
+                break;
+            }
+            // get the order
+            Order memory _order = orderInfo[buyToken][orderID];
+            // calculate cost and return
+            (uint256 cost, uint256 buyAmount) = _getTradeAmounts(
+                buyToken,
+                _order,
+                trade,
+                price
+            );
+            if (buyAmount == 0) {
+                break;
+            }
+            // update order owner balance
+            traderBalance[sellToken][_order.trader] += cost;
+            // update liquidity info
+            liquidityByPrice[buyToken][_order.price] -= buyAmount;
+            totalLiquidity[buyToken] -= buyAmount;
+            // update order
+            _order.amount -= buyAmount;
+            if (_order.amount == 0) {
+                _removeOrder(buyToken, orderID);
+            } else {
+                orderInfo[buyToken][orderID].amount -= buyAmount;
+            }
+            // update trade data
+            trade.update(cost, buyAmount);
+            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
+            if (_order.amount != 0) {
+                break;
+            }
+        }
+        require(
+            trade.amountIn > 0 && trade.amountOut > 0,
+            "LimitrVault: no trade"
+        );
+        // calculate fee
+        uint256 fee = feeFor(trade.amountIn);
+        assert(trade.amountIn + fee <= maxAmountIn);
+        // deposit payment
+        _depositToken(sellToken, msg.sender, trade.amountIn);
+        // collect fee
+        _tokenTransferFrom(
+            sellToken,
+            msg.sender,
+            ILimitrRegistry(registry).feeReceiver(),
+            fee
+        );
+        // transfer purchased tokens
+        _withdrawToken(buyToken, receiver, trade.amountOut);
+        return (trade.amountIn + fee, trade.amountOut);
+    }
+
+    function _getTradeAmountsMaxPrice(
+        address buyToken,
+        Order memory _order,
+        TradeHandler memory trade,
+        uint256 maxPrice
+    ) internal view returns (uint256, uint256) {
+        // check price
+        if (_order.price > maxPrice) {
+            return (0, 0);
+        }
+        // max amount of the base token that can be purchased with the
+        uint256 buyAmount = returnAtPrice(
+            buyToken,
+            trade.availableAmountIn,
+            _order.price
+        );
+        if (buyAmount == 0) {
+            return (0, 0);
+        }
+        return _tradeAmounts(buyToken, _order, trade, buyAmount);
+    }
+
+    function _tradeAmounts(
+        address buyToken,
+        Order memory _order,
+        TradeHandler memory trade,
+        uint256 maxBuyAmount
+    ) internal view returns (uint256, uint256) {
+        // cap at the order amount
+        if (maxBuyAmount > _order.amount) {
+            maxBuyAmount = _order.amount;
+        }
+        // max that can be afforded
+        uint256 cost = costAtPrice(buyToken, maxBuyAmount, _order.price);
+        if (cost > trade.availableAmountIn) {
+            cost = trade.availableAmountIn;
+            maxBuyAmount = returnAtPrice(buyToken, cost, _order.price);
+        }
+        return (cost, maxBuyAmount);
+    }
+
+    function _getTradeAmountsAvgPrice(
+        address buyToken,
+        Order memory _order,
+        TradeHandler memory trade,
+        uint256 avgPrice
+    ) internal view returns (uint256, uint256) {
+        // max amount that can be purchased
+        uint256 buyAmount = _maxAmountAvgPrice(
+            buyToken,
+            avgPrice,
+            trade,
+            _order.price
+        );
+        if (buyAmount == 0) {
+            return (0, 0);
+        }
+        return _tradeAmounts(buyToken, _order, trade, buyAmount);
     }
 }

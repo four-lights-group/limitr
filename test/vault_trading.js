@@ -4,9 +4,6 @@ const {
   vaultNewSellOrders,
   vaultBuyMaxPrice,
   vaultBuyAvgPrice,
-  formatAmount,
-  sendWithExtraGas,
-  estimateGas,
 } = require("./util");
 
 contract("LimitrVault", (accounts) => {

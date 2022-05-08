@@ -1,4 +1,4 @@
-const { twoTokenDeployment, vaultAtIdx } = require("./util");
+const { twoTokenDeployment } = require("./util");
 
 contract("LimitrVault", (accounts) => {
   it("returns the correct vault implementation address", async () => {

@@ -3,8 +3,16 @@ const WETH = artifacts.require("WETH9");
 const LimitrVault = artifacts.require("LimitrVault");
 const LimitrRegistry = artifacts.require("LimitrRegistry");
 const LimitrRouter = artifacts.require("LimitrRouter");
+const LimitrVaultScanner = artifacts.require("LimitrVaultScanner");
 
-[TokenX, WETH, LimitrVault, LimitrRegistry, LimitrRouter].forEach((a) => {
+[
+  TokenX,
+  WETH,
+  LimitrVault,
+  LimitrRegistry,
+  LimitrRouter,
+  LimitrVaultScanner,
+].forEach((a) => {
   a.numberFormat = "BigInt";
 });
 
@@ -51,8 +59,9 @@ const deploy = {
       )
     ).then((t) => t.reduce((ac, v) => Object.assign(ac, v), {})),
   vaultImplementation: () => LimitrVault.new(),
-  registry: (vaultImpl) => LimitrRegistry.new(vaultImpl),
+  registry: () => LimitrRegistry.new(),
   router: async (registry) => LimitrRouter.new(WETH.address, registry),
+  scanner: async (registry) => LimitrVaultScanner.new(registry),
 };
 
 const sortOrders = (a, b) =>
@@ -172,6 +181,7 @@ const newDeployment = async (tokensSpecs) => {
     vaultImplementation: await deploy.vaultImplementation(),
     registry: undefined,
     router: undefined,
+    scanner: undefined,
     vaultAtIdx: function (idx) {
       return this.registry.vault(idx).then((v) => LimitrVault.at(v));
     },
@@ -182,9 +192,14 @@ const newDeployment = async (tokensSpecs) => {
         .then((vt) => (this.vaultTrackers[idx] = vt));
     },
   };
-  r.registry = await deploy.registry(r.vaultImplementation.address);
+  r.registry = await deploy.registry();
   r.router = await deploy.router(r.registry.address);
-  await r.registry.setRouter(r.router.address);
+  r.scanner = await deploy.scanner(r.registry.address);
+  await r.registry.initialize(
+    r.router.address,
+    r.scanner.address,
+    r.vaultImplementation.address
+  );
   return r;
 };
 

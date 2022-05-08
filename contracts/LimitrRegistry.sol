@@ -58,13 +58,13 @@ contract LimitrRegistry is ILimitrRegistry {
 
     /// @notice Add an URL to the URL list
     /// @param url The URL to add
-    function addURL(string calldata url) external override {
+    function addURL(string calldata url) external override onlyAdmin {
         _URLS.push(url);
     }
 
     /// @notice Remove the URL at idx from the URL list
     /// @param idx The idx to remove
-    function removeURL(uint256 idx) external override {
+    function removeURL(uint256 idx) external override onlyAdmin {
         _URLS[idx] = _URLS[_URLS.length - 1];
         _URLS.pop();
     }
@@ -72,7 +72,11 @@ contract LimitrRegistry is ILimitrRegistry {
     /// @notice Update an existing URL
     /// @param idx The idx to remove
     /// @param url The URL to add
-    function updateURL(uint256 idx, string calldata url) external override {
+    function updateURL(uint256 idx, string calldata url)
+        external
+        override
+        onlyAdmin
+    {
         _URLS[idx] = url;
     }
 
@@ -116,11 +120,14 @@ contract LimitrRegistry is ILimitrRegistry {
         noZeroAddress(tokenB)
         returns (address)
     {
-        require(tokenA != tokenB, "Equal src and dst tokens");
+        require(tokenA != tokenB, "LimitrRegistry: equal src and dst tokens");
         (address t0, address t1) = _sortTokens(tokenA, tokenB);
         bytes32 hash = keccak256(abi.encodePacked(t0, t1));
-        require(vaultByHash[hash] == address(0), "Vault already exists");
-        address addr = _deployProxy(vaultImplementation);
+        require(
+            vaultByHash[hash] == address(0),
+            "LimitrRegistry: vault already exists"
+        );
+        address addr = _deployClone(vaultImplementation);
         ILimitrVault(addr).initialize(t0, t1);
         vaultByHash[hash] = addr;
         vault.push(addr);
@@ -160,7 +167,10 @@ contract LimitrRegistry is ILimitrRegistry {
         noZeroAddress(tokenB)
         returns (address)
     {
-        require(tokenA != tokenB, "Equal base and counter tokens");
+        require(
+            tokenA != tokenB,
+            "LimitrRegistry: equal base and counter tokens"
+        );
         return vaultByHash[_vaultHash(tokenA, tokenB)];
     }
 
@@ -174,7 +184,7 @@ contract LimitrRegistry is ILimitrRegistry {
         override
         returns (bytes32)
     {
-        require(tokenA != tokenB, "Equal src and dst tokens");
+        require(tokenA != tokenB, "LimitrRegistry: equal src and dst tokens");
         return _vaultHash(tokenA, tokenB);
     }
 
@@ -182,13 +192,13 @@ contract LimitrRegistry is ILimitrRegistry {
 
     /// @dev Check for 0 address
     modifier noZeroAddress(address addr) {
-        require(addr != address(0), "Zero address not allowed");
+        require(addr != address(0), "LimitrRegistry: zero address not allowed");
         _;
     }
 
     /// @dev only for the admin
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Not the admin");
+        require(msg.sender == admin, "LimitrRegistry: not the admin");
         _;
     }
 
@@ -207,7 +217,7 @@ contract LimitrRegistry is ILimitrRegistry {
         return keccak256(abi.encodePacked(t0, t1));
     }
 
-    function _buildProxyBytecode(address impl)
+    function _buildCloneBytecode(address impl)
         internal
         pure
         returns (bytes memory)
@@ -263,7 +273,7 @@ contract LimitrRegistry is ILimitrRegistry {
             );
     }
 
-    function _prependProxyConstructor(address impl)
+    function _prependCloneConstructor(address impl)
         internal
         pure
         returns (bytes memory)
@@ -287,18 +297,21 @@ contract LimitrRegistry is ILimitrRegistry {
         return
             bytes.concat(
                 hex"600D80380380916000396000F3",
-                _buildProxyBytecode(impl)
+                _buildCloneBytecode(impl)
             );
     }
 
-    function _deployProxy(address impl)
+    function _deployClone(address impl)
         internal
         returns (address deploymentAddr)
     {
-        bytes memory code = _prependProxyConstructor(impl);
+        bytes memory code = _prependCloneConstructor(impl);
         assembly {
             deploymentAddr := create(callvalue(), add(code, 0x20), mload(code))
         }
-        require(deploymentAddr != address(0), "deployment failed");
+        require(
+            deploymentAddr != address(0),
+            "LimitrRegistry: clone deployment failed"
+        );
     }
 }

@@ -34,6 +34,7 @@ const assertReason = {
   notTheOwnerApprovedOrOperator: (err) => (
     err, "LimitrVault: not the owner, approved or operator"
   ),
+  notTheAdmin: (err) => expectReason(err, "LimitrRegistry: not the admin"),
 };
 
 const estimateGas = (func, ...args) => func.estimateGas(...args);

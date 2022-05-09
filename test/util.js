@@ -35,6 +35,13 @@ const assertReason = {
     err, "LimitrVault: not the owner, approved or operator"
   ),
   notTheAdmin: (err) => expectReason(err, "LimitrRegistry: not the admin"),
+  notTheRouter: (err) => expectReason(err, "LimitrVault: not the router"),
+  notAllowed: (err) => expectReason(err, "LimitrRouter: not allowed"),
+  /*
+LimitrRouter: vault doesn't exist
+LimitrRouter: can't transfer()
+LimitrRouter: can't transferFrom()
+*/
 };
 
 const estimateGas = (func, ...args) => func.estimateGas(...args);
@@ -175,9 +182,11 @@ function objEqual(a, b) {
   return true;
 }
 
-const newDeployment = async (tokensSpecs) => {
+const newDeployment = async (tokensSpecs, feeReceiver) => {
+  const a = (await WETH.deployed()).address;
+  WETH.numberFormat = "BigInt";
   const r = {
-    weth: await WETH.deployed(),
+    weth: await WETH.at(a),
     tokens: await deploy.tokens(tokensSpecs),
     vaultImplementation: await deploy.vaultImplementation(),
     registry: undefined,
@@ -201,6 +210,9 @@ const newDeployment = async (tokensSpecs) => {
     r.scanner.address,
     r.vaultImplementation.address
   );
+  if (feeReceiver) {
+    await r.registry.setFeeReceiver(feeReceiver);
+  }
   return r;
 };
 
@@ -215,15 +227,25 @@ const generateTokensSpecs = (owner, seed) =>
       owner: owner,
     }));
 
-const twoTokenDeployment = async (owner) => {
+const twoTokenDeployment = async (owner, feeReceiver) => {
   const depl = await newDeployment(
-    generateTokensSpecs(owner, { A: 18n, B: 12n }).slice(0, 2)
+    generateTokensSpecs(owner, { A: 18n, B: 12n }),
+    feeReceiver
   );
   await depl.registry.createVault(
     depl.tokens.tka.address,
     depl.tokens.tkb.address
   );
   await depl.trackVaultAtIdx(0);
+  return depl;
+};
+
+const ethTokenDeployment = async (owner, feeReceiver) => {
+  const depl = await newDeployment(
+    generateTokensSpecs(owner, { A: 18n, B: 12n }),
+    feeReceiver
+  );
+  await depl.registry.createVault(depl.tokens.tka.address, depl.weth.address);
   return depl;
 };
 
@@ -342,6 +364,7 @@ module.exports = {
   generateTokensSpecs,
   newDeployment,
   twoTokenDeployment,
+  ethTokenDeployment,
   vaultNewSellOrder,
   vaultNewSellOrders,
   vaultBuyMaxPrice,

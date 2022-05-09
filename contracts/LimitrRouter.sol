@@ -204,7 +204,7 @@ contract LimitrRouter is ILimitrRouter {
         uint256 deadline
     ) external override {
         ILimitrVault v = _getExistingVault(weth, buyToken);
-        require(v.isAllowed(msg.sender, orderID), "not allowed");
+        require(v.isAllowed(msg.sender, orderID), "LimitrRouter: not allowed");
         v.cancelOrder(orderID, amount, address(this), deadline);
         _unwrapBalance();
         _returnETHBalance(receiver);
@@ -432,7 +432,7 @@ contract LimitrRouter is ILimitrRouter {
         returns (ILimitrVault)
     {
         address v = ILimitrRegistry(registry).vaultFor(tokenA, tokenB);
-        require(v != address(0), "Vault doesn" "t exist");
+        require(v != address(0), "LimitrRouter: vault doesn't exist");
         return ILimitrVault(v);
     }
 
@@ -467,7 +467,7 @@ contract LimitrRouter is ILimitrRouter {
         uint256 amount
     ) internal {
         bool ok = IERC20(token).transfer(to, amount);
-        require(ok, "can" "t transfer()");
+        require(ok, "LimitrRouter: can't transfer()");
     }
 
     function _tokenTransferFrom(
@@ -477,7 +477,7 @@ contract LimitrRouter is ILimitrRouter {
         uint256 amount
     ) internal {
         bool ok = IERC20(token).transferFrom(owner, to, amount);
-        require(ok, "can" "t transferFrom()");
+        require(ok, "LimitrRouter: can't transferFrom()");
     }
 
     function _wrapBalance() internal returns (uint256) {

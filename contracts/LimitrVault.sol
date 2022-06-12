@@ -9,6 +9,13 @@ import "./interfaces/ILimitrRegistry.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC721Receiver.sol";
 
+/// @dev Order data
+struct Order {
+    uint256 price;
+    uint256 amount;
+    address trader;
+}
+
 /// @dev trade handler
 struct TradeHandler {
     uint256 amountIn;
@@ -33,17 +40,8 @@ library TradeHandlerLib {
 /// @title Trade vault contract for Limitr
 contract LimitrVault is ILimitrVault {
     using DoubleLinkedList for DLL;
-
     using SortedDoubleLinkedList for SDLL;
-
     using TradeHandlerLib for TradeHandler;
-
-    /// @dev Order data
-    struct Order {
-        uint256 price;
-        uint256 amount;
-        address trader;
-    }
 
     /// @notice Initialize the market. Must be called by the factory once at deployment time
     /// @param _token0 The first token of the pair
@@ -497,7 +495,7 @@ contract LimitrVault is ILimitrVault {
         address buyToken,
         uint256 maxAmountOut,
         uint256 maxPrice
-    ) external view override returns (uint256 amountIn, uint256 amountOut) {
+    ) public view override returns (uint256 amountIn, uint256 amountOut) {
         return
             _returnAtMaxPrice(
                 buyToken,
@@ -517,7 +515,7 @@ contract LimitrVault is ILimitrVault {
         address buyToken,
         uint256 maxAmountIn,
         uint256 maxPrice
-    ) external view override returns (uint256 amountIn, uint256 amountOut) {
+    ) public view override returns (uint256 amountIn, uint256 amountOut) {
         return _returnAtMaxPrice(buyToken, maxAmountIn, maxPrice);
     }
 
@@ -641,7 +639,7 @@ contract LimitrVault is ILimitrVault {
                 return orderID;
             }
         }
-        revert("LimitrVault: can" "t create new order");
+        revert("LimitrVault: can't create new order");
     }
 
     // order cancellation functions
@@ -696,7 +694,8 @@ contract LimitrVault is ILimitrVault {
                 maxPrice,
                 maxAmountIn,
                 receiver,
-                _getTradeAmountsMaxPrice
+                _getTradeAmountsMaxPrice,
+                _postTrade
             );
     }
 
@@ -729,7 +728,8 @@ contract LimitrVault is ILimitrVault {
                 avgPrice,
                 maxAmountIn,
                 receiver,
-                _getTradeAmountsAvgPrice
+                _getTradeAmountsAvgPrice,
+                _postTrade
             );
     }
 
@@ -919,6 +919,104 @@ contract LimitrVault is ILimitrVault {
         bytes memory _data
     ) public override {
         _ERC721SafeTransfer(from, to, tokenId, _data);
+    }
+
+    /// @notice Returns the estimated profit for an arbitrage trade
+    /// @param profitToken The token to take profit in
+    /// @param maxAmountIn The maximum amount of `profitToken` to borrow
+    /// @param maxPrice The maximum purchase price
+    /// @return profitIn The amount to borrow of the `profitToken`
+    /// @return profitOut The total amount to receive `profitToken`
+    /// @return otherOut the amount of the other token of the vault to receive
+    function arbitrageAmountsOut(
+        address profitToken,
+        uint256 maxAmountIn,
+        uint256 maxPrice
+    )
+        external
+        view
+        override
+        validToken(profitToken)
+        returns (
+            uint256 profitIn,
+            uint256 profitOut,
+            uint256 otherOut
+        )
+    {
+        address other = _otherToken(profitToken);
+        uint256 buyOut;
+        (profitIn, buyOut) = _returnAtMaxPrice(
+            other,
+            withoutFee(maxAmountIn),
+            maxPrice != 0 ? maxPrice : _prices[other].last()
+        );
+        profitIn = withFee(profitIn);
+        uint256 dumpIn;
+        (dumpIn, profitOut) = _returnAtMaxPrice(
+            profitToken,
+            withoutFee(buyOut),
+            _prices[profitToken].last()
+        );
+        dumpIn = withFee(dumpIn);
+        otherOut = buyOut - dumpIn;
+    }
+
+    /// @notice Buys from one side of the vault with borrowed funds and dumps on
+    ///         the other side
+    /// @param profitToken The token to take profit in
+    /// @param maxBorrow The maximum amount of `profitToken` to borrow
+    /// @param maxPrice The maximum purchase price
+    /// @param receiver The receiver of the arbitrage profits
+    /// @param deadline Validity deadline
+    function arbitrageTrade(
+        address profitToken,
+        uint256 maxBorrow,
+        uint256 maxPrice,
+        address receiver,
+        uint256 deadline
+    )
+        external
+        override
+        withinDeadline(deadline)
+        validToken(profitToken)
+        lock
+        returns (uint256 profitAmount, uint256 otherAmount)
+    {
+        address otherToken = _otherToken(profitToken);
+        // borrow borrowedProfitIn and buy otherOut with it
+        uint256 p = maxPrice != 0 ? maxPrice : _prices[otherToken].last();
+        (uint256 borrowedProfitIn, uint256 otherOut) = _trade(
+            otherToken,
+            p,
+            maxBorrow,
+            receiver,
+            _getTradeAmountsMaxPrice,
+            _postBorrowTrade
+        );
+        // borrow borrowedOtherIn and buy profitOut with it
+        p = _prices[profitToken].last();
+        (uint256 borrowedOtherIn, uint256 profitOut) = _trade(
+            profitToken,
+            p,
+            otherOut,
+            receiver,
+            _getTradeAmountsMaxPrice,
+            _postBorrowTrade
+        );
+        require(
+            profitOut > borrowedProfitIn,
+            "LimitrVault: no arbitrage profit"
+        );
+        profitAmount = profitOut - borrowedProfitIn;
+        otherAmount = otherOut - borrowedOtherIn;
+        _withdrawToken(profitToken, receiver, profitAmount);
+        _withdrawToken(otherToken, receiver, otherAmount);
+        emit ArbitrageProfitTaken(
+            profitToken,
+            profitAmount,
+            otherAmount,
+            receiver
+        );
     }
 
     // modifiers
@@ -1401,6 +1499,57 @@ contract LimitrVault is ILimitrVault {
         return (trade.amountIn, trade.amountOut);
     }
 
+    function _otherToken(address token) internal view returns (address) {
+        return token == token0 ? token1 : token0;
+    }
+
+    function _tradeFirstOrder(
+        address buyToken,
+        address sellToken,
+        TradeHandler memory trade,
+        uint256 price,
+        function(address, Order memory, TradeHandler memory, uint256)
+            view
+            returns (uint256, uint256) _getTradeAmounts
+    ) internal returns (bool) {
+        // get the order ID
+        uint256 orderID = _orders[buyToken].first();
+        if (orderID == 0) {
+            return false;
+        }
+        // get the order
+        Order memory _order = orderInfo[buyToken][orderID];
+        // calculate cost and return
+        (uint256 cost, uint256 buyAmount) = _getTradeAmounts(
+            buyToken,
+            _order,
+            trade,
+            price
+        );
+        if (buyAmount == 0) {
+            return false;
+        }
+        // update order owner balance
+        traderBalance[sellToken][_order.trader] += cost;
+        // update liquidity info
+        liquidityByPrice[buyToken][_order.price] -= buyAmount;
+        totalLiquidity[buyToken] -= buyAmount;
+        // update order
+        _order.amount -= buyAmount;
+        if (_order.amount == 0) {
+            _removeOrder(buyToken, orderID);
+        } else {
+            orderInfo[buyToken][orderID].amount -= buyAmount;
+        }
+        // update trade data
+        trade.update(cost, buyAmount);
+        emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
+        if (_order.amount != 0) {
+            return false;
+        }
+        return true;
+    }
+
     function _trade(
         address buyToken,
         uint256 price,
@@ -1408,44 +1557,26 @@ contract LimitrVault is ILimitrVault {
         address receiver,
         function(address, Order memory, TradeHandler memory, uint256)
             view
-            returns (uint256, uint256) _getTradeAmounts
+            returns (uint256, uint256) _getTradeAmounts,
+        function(
+            address,
+            address,
+            TradeHandler memory,
+            address
+        ) _postTradeHandler
     ) internal returns (uint256 amountIn, uint256 amountOut) {
         TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        address sellToken = buyToken == token0 ? token1 : token0;
+        address sellToken = _otherToken(buyToken);
         while (trade.availableAmountIn > 0) {
-            // get the order ID
-            uint256 orderID = _orders[buyToken].first();
-            if (orderID == 0) {
-                break;
-            }
-            // get the order
-            Order memory _order = orderInfo[buyToken][orderID];
-            // calculate cost and return
-            (uint256 cost, uint256 buyAmount) = _getTradeAmounts(
-                buyToken,
-                _order,
-                trade,
-                price
-            );
-            if (buyAmount == 0) {
-                break;
-            }
-            // update order owner balance
-            traderBalance[sellToken][_order.trader] += cost;
-            // update liquidity info
-            liquidityByPrice[buyToken][_order.price] -= buyAmount;
-            totalLiquidity[buyToken] -= buyAmount;
-            // update order
-            _order.amount -= buyAmount;
-            if (_order.amount == 0) {
-                _removeOrder(buyToken, orderID);
-            } else {
-                orderInfo[buyToken][orderID].amount -= buyAmount;
-            }
-            // update trade data
-            trade.update(cost, buyAmount);
-            emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
-            if (_order.amount != 0) {
+            if (
+                !_tradeFirstOrder(
+                    buyToken,
+                    sellToken,
+                    trade,
+                    price,
+                    _getTradeAmounts
+                )
+            ) {
                 break;
             }
         }
@@ -1453,11 +1584,23 @@ contract LimitrVault is ILimitrVault {
             trade.amountIn > 0 && trade.amountOut > 0,
             "LimitrVault: no trade"
         );
-        // calculate fee
-        uint256 fee = feeFor(trade.amountIn);
-        assert(trade.amountIn + fee <= maxAmountIn);
+        _postTradeHandler(buyToken, sellToken, trade, receiver);
+        return (withFee(trade.amountIn), trade.amountOut);
+    }
+
+    // deposit payment
+    // collect fee
+    // withdraw purchased tokens
+    function _postTrade(
+        address buyToken,
+        address sellToken,
+        TradeHandler memory trade,
+        address receiver
+    ) internal {
         // deposit payment
         _depositToken(sellToken, msg.sender, trade.amountIn);
+        // calculate fee
+        uint256 fee = feeFor(trade.amountIn);
         // collect fee
         _tokenTransferFrom(
             sellToken,
@@ -1465,9 +1608,23 @@ contract LimitrVault is ILimitrVault {
             ILimitrRegistry(registry).feeReceiver(),
             fee
         );
+        emit FeeCollected(sellToken, fee);
         // transfer purchased tokens
         _withdrawToken(buyToken, receiver, trade.amountOut);
-        return (trade.amountIn + fee, trade.amountOut);
+    }
+
+    // only collect fee from the vault
+    function _postBorrowTrade(
+        address,
+        address sellToken,
+        TradeHandler memory trade,
+        address
+    ) internal {
+        // calculate fee
+        uint256 fee = feeFor(trade.amountIn);
+        // collect fee
+        _withdrawToken(sellToken, ILimitrRegistry(registry).feeReceiver(), fee);
+        emit FeeCollected(sellToken, fee);
     }
 
     function _getTradeAmountsMaxPrice(

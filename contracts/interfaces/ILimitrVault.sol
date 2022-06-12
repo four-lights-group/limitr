@@ -50,6 +50,23 @@ interface ILimitrVault is IERC721 {
         uint256 price
     );
 
+    /// @notice ArbitrageProfitTaken is emitted when an arbitrage profit is taken
+    /// @param profitToken The main profit token
+    /// @param profitAmount The amount of `profitToken` received
+    /// @param otherAmount The amount of received of the other token of the vault
+    /// @param receiver The profit receiver
+    event ArbitrageProfitTaken(
+        address indexed profitToken,
+        uint256 profitAmount,
+        uint256 otherAmount,
+        address indexed receiver
+    );
+
+    /// @notice FeeCollected is emitted when the fee on a buy is collected
+    /// @param token The fee token
+    /// @param amount The amount collected
+    event FeeCollected(address indexed token, uint256 amount);
+
     /// @notice Initialize the market. Must be called by the factory once at deployment time
     /// @param _token0 The first token of the pair
     /// @param _token1 The second token of the pair
@@ -524,4 +541,39 @@ interface ILimitrVault is IERC721 {
 
     /// @return The address of the vault implementation
     function implementationAddress() external view returns (address);
+
+    /// @notice Returns the estimated profit for an arbitrage trade
+    /// @param profitToken The token to take profit in
+    /// @param maxAmountIn The maximum amount of `profitToken` to borrow
+    /// @param maxPrice The maximum purchase price
+    /// @return profitIn The amount to borrow of the `profitToken`
+    /// @return profitOut The total amount to receive `profitToken`
+    /// @return otherOut the amount of the other token of the vault to receive
+    function arbitrageAmountsOut(
+        address profitToken,
+        uint256 maxAmountIn,
+        uint256 maxPrice
+    )
+        external
+        view
+        returns (
+            uint256 profitIn,
+            uint256 profitOut,
+            uint256 otherOut
+        );
+
+    /// @notice Buys from one side of the vault with borrowed funds and dumps on
+    ///         the other side
+    /// @param profitToken The token to take profit in
+    /// @param maxBorrow The maximum amount of `profitToken` to borrow
+    /// @param maxPrice The maximum purchase price
+    /// @param receiver The receiver of the arbitrage profits
+    /// @param deadline Validity deadline
+    function arbitrageTrade(
+        address profitToken,
+        uint256 maxBorrow,
+        uint256 maxPrice,
+        address receiver,
+        uint256 deadline
+    ) external returns (uint256 profitAmount, uint256 otherAmount);
 }

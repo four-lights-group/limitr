@@ -188,6 +188,9 @@ const newDeployment = async (tokensSpecs, feeReceiver) => {
   const r = {
     weth: await WETH.at(a),
     tokens: await deploy.tokens(tokensSpecs),
+    tokenSpecs: Object.fromEntries(
+      tokensSpecs.map((ent) => [ent.symbol.toLowerCase(), ent])
+    ),
     vaultImplementation: await deploy.vaultImplementation(),
     registry: undefined,
     router: undefined,
@@ -329,6 +332,7 @@ const formatAmount = (amount, decimals) => {
   if (amount === undefined) {
     return undefined;
   }
+  decimals = Number(decimals);
   const isNegative = amount < 0;
   let a = String(BigInt(amount));
   if (isNegative) {

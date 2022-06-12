@@ -8,20 +8,43 @@ const {
 contract("LimitrRouter", (accounts) => {
   const createOrders = async (depl) => {
     const vault = await depl.vaultAtIdx(0);
-    const tkaDecimals = await depl.tokens.tka.decimals();
     const wethDecimals = await depl.weth.decimals();
     const tkaOrders = [
-      [13n * 10n ** (wethDecimals - 1n), 50n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (wethDecimals - 1n), 10n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (wethDecimals - 1n), 5n * 10n ** (tkaDecimals - 1n)],
-      [17n * 10n ** (wethDecimals - 1n), 40n * 10n ** (tkaDecimals - 1n)],
+      [
+        13n * 10n ** (wethDecimals - 1n),
+        50n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (wethDecimals - 1n),
+        10n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (wethDecimals - 1n),
+        5n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        17n * 10n ** (wethDecimals - 1n),
+        40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
     await vaultNewSellOrders(vault, tkaOrders);
     const wethOrders = [
-      [13n * 10n ** (tkaDecimals - 1n), 50n * 10n ** (wethDecimals - 1n)],
-      [16n * 10n ** (tkaDecimals - 1n), 10n * 10n ** (wethDecimals - 1n)],
-      [15n * 10n ** (tkaDecimals - 1n), 5n * 10n ** (wethDecimals - 1n)],
-      [17n * 10n ** (tkaDecimals - 1n), 40n * 10n ** (wethDecimals - 1n)],
+      [
+        13n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+        50n * 10n ** (wethDecimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+        10n * 10n ** (wethDecimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+        5n * 10n ** (wethDecimals - 1n),
+      ],
+      [
+        17n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+        40n * 10n ** (wethDecimals - 1n),
+      ],
     ].map((v) => [depl.weth].concat(v).concat([accounts[0]]));
     await depl.weth.deposit({
       value: (

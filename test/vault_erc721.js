@@ -10,8 +10,8 @@ contract("LimitrVault", (accounts) => {
     await vaultNewSellOrder(
       await depl.vaultAtIdx(0),
       depl.tokens.tka,
-      2n * 10n ** (await depl.tokens.tkb.decimals()),
-      10n ** (await depl.tokens.tka.decimals()),
+      2n * 10n ** depl.tokenSpecs.tkb.decimals,
+      10n ** depl.tokenSpecs.tka.decimals,
       accounts[0]
     );
 

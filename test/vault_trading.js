@@ -9,17 +9,39 @@ const {
 contract("LimitrVault", (accounts) => {
   const createOrders = async (depl) => {
     const vault = await depl.vaultAtIdx(0);
-    const tkaDecimals = await depl.tokens.tka.decimals();
-    const tkbDecimals = await depl.tokens.tkb.decimals();
     const orders = [
-      [13n * 10n ** (tkbDecimals - 1n), 50n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (tkbDecimals - 1n), 10n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (tkbDecimals - 1n), 5n * 10n ** (tkaDecimals - 1n)],
-      [17n * 10n ** (tkbDecimals - 1n), 40n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (tkbDecimals - 1n), 15n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (tkbDecimals - 1n), 30n * 10n ** (tkaDecimals - 1n)],
-      [14n * 10n ** (tkbDecimals - 1n), 20n * 10n ** (tkaDecimals - 1n)],
-      [12n * 10n ** (tkbDecimals - 1n), 35n * 10n ** (tkaDecimals - 1n)],
+      [
+        13n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        50n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        10n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        5n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        17n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        15n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        30n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        14n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        20n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        35n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
     await vaultNewSellOrders(vault, orders);
   };
@@ -49,19 +71,25 @@ contract("LimitrVault", (accounts) => {
     const amount = 10000000n;
     await vaultNewSellOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
     const maxCost = await vault
-      .costAtPrice(depl.tokens.tka.address, amount + 1n, price)
+      .costAtPrice(depl.tokens.tka.address, amount * 2n, price)
       .then(vault.withFee);
     await vaultBuyMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,
-      price,
+      order.price,
       maxCost,
       accounts[0]
     );
-    assert.isTrue(
-      (await vault.firstOrder(depl.tokens.tka.address)) == order.orderID
-    );
+    const newOrder = await vault
+      .firstOrder(depl.tokens.tka.address)
+      .then((orderID) =>
+        vault
+          .orderInfo(depl.tokens.tka.address, orderID)
+          .then((info) => ({ orderID, ...info }))
+      );
+    assert.isTrue(newOrder.orderID == order.orderID);
+    assert.isTrue(newOrder.amount < order.amount);
   });
 
   it("can buy partial order at max price", async () => {
@@ -186,8 +214,8 @@ contract("LimitrVault", (accounts) => {
     const cost = await await vault
       .costAtMaxPrice(
         depl.tokens.tka.address,
-        orders[0].amount + 1n,
-        orders[0].price
+        orders[0].amount,
+        orders[0].price * 2n
       )
       .then((v) => v.amountIn);
     const fee = await vault.feeFor(cost);
@@ -204,7 +232,7 @@ contract("LimitrVault", (accounts) => {
       .then(convertOrdersInfo);
     assert.isTrue(newOrders[0].orderID == orders[1].orderID);
     assert.isTrue(newOrders[0].price == orders[1].price);
-    assert.isTrue(newOrders[0].amount == orders[1].amount);
+    assert.isTrue(newOrders[0].amount < orders[1].amount);
   });
 
   it("can buy partial order at average price", async () => {
@@ -275,7 +303,7 @@ contract("LimitrVault", (accounts) => {
     let orders = await vault
       .ordersInfo(depl.tokens.tka.address, 0, 5)
       .then(convertOrdersInfo);
-    const price = 125n * 10n ** ((await depl.tokens.tkb.decimals()) - 2n);
+    const price = 125n * 10n ** (depl.tokenSpecs.tkb.decimals - 2n);
     const cost = await vault.costAtAvgPrice(
       depl.tokens.tka.address,
       orders.map((v) => v.amount).reduce((ac, v) => ac + v, 0n),
@@ -311,7 +339,7 @@ contract("LimitrVault", (accounts) => {
     const realReturn =
       (await depl.tokens.tka.balanceOf(accounts[0])) - tkaBalance;
     const realPrice =
-      (10n ** (await depl.tokens.tka.decimals()) * realCost) / realReturn;
+      (10n ** depl.tokenSpecs.tka.decimals * realCost) / realReturn;
     assert.isTrue(realPrice <= price);
   });
 

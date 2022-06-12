@@ -42,7 +42,7 @@ contract("LimitrVault", (accounts) => {
       (v * feePercentage) / (10n ** 18n - feePercentage);
     const withoutFee = (v, feePercentage) => v - feeOf(v, feePercentage);
     const withFee = (v, feePercentage) => v + feeFor(v, feePercentage);
-    const v = 10n ** (await depl.tokens.tka.decimals());
+    const v = 10n ** depl.tokenSpecs.tka.decimals;
     assert.isTrue((await vault.feeOf(v)) == feeOf(v, initialVaultFee));
     assert.isTrue((await vault.feeFor(v)) == feeFor(v, initialVaultFee));
     assert.isTrue(

@@ -3,17 +3,39 @@ const { twoTokenDeployment, vaultNewSellOrders, objEqual } = require("./util");
 contract("LimitrVault", (accounts) => {
   const createOrders = async (depl) => {
     const vault = await depl.vaultAtIdx(0);
-    const tkaDecimals = await depl.tokens.tka.decimals();
-    const tkbDecimals = await depl.tokens.tkb.decimals();
     const orders = [
-      [13n * 10n ** (tkbDecimals - 1n), 50n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (tkbDecimals - 1n), 10n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (tkbDecimals - 1n), 5n * 10n ** (tkaDecimals - 1n)],
-      [17n * 10n ** (tkbDecimals - 1n), 40n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (tkbDecimals - 1n), 15n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (tkbDecimals - 1n), 30n * 10n ** (tkaDecimals - 1n)],
-      [14n * 10n ** (tkbDecimals - 1n), 20n * 10n ** (tkaDecimals - 1n)],
-      [12n * 10n ** (tkbDecimals - 1n), 35n * 10n ** (tkaDecimals - 1n)],
+      [
+        13n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        50n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        10n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        5n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        17n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        15n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        30n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        14n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        20n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        35n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
     await vaultNewSellOrders(vault, orders);
     await depl.vaultTrackers[0].newSellOrders(
@@ -24,15 +46,31 @@ contract("LimitrVault", (accounts) => {
     );
   };
   const expLiquidity = async (depl) => {
-    const tkaDecimals = await depl.tokens.tka.decimals();
-    const tkbDecimals = await depl.tokens.tkb.decimals();
     return [
-      [12n * 10n ** (tkbDecimals - 1n), 35n * 10n ** (tkaDecimals - 1n)],
-      [13n * 10n ** (tkbDecimals - 1n), 50n * 10n ** (tkaDecimals - 1n)],
-      [14n * 10n ** (tkbDecimals - 1n), 20n * 10n ** (tkaDecimals - 1n)],
-      [15n * 10n ** (tkbDecimals - 1n), 20n * 10n ** (tkaDecimals - 1n)],
-      [16n * 10n ** (tkbDecimals - 1n), 40n * 10n ** (tkaDecimals - 1n)],
-      [17n * 10n ** (tkbDecimals - 1n), 40n * 10n ** (tkaDecimals - 1n)],
+      [
+        12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        35n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        13n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        50n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        14n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        20n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        15n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        20n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        16n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
+      [
+        17n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
+        40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
+      ],
     ];
   };
 

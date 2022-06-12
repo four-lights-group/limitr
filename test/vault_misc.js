@@ -40,8 +40,8 @@ contract("LimitrVault", (accounts) => {
   it("ensure that withdrawFor can only be called by the router", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     const vault = await depl.vaultAtIdx(0);
-    const price = 12n * 10n ** ((await depl.tokens.tkb.decimals()) - 1n);
-    const amount = 2n * 10n ** (await depl.tokens.tka.decimals());
+    const price = 12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n);
+    const amount = 2n * 10n ** depl.tokenSpecs.tka.decimals;
     await vaultNewSellOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
     const cost = await vault.costAtMaxPrice(
       depl.tokens.tka.address,

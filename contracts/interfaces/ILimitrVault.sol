@@ -50,6 +50,18 @@ interface ILimitrVault is IERC721 {
         uint256 price
     );
 
+    /// @notice TokenWithdraw is emitted when an withdrawal is requested by a trader
+    /// @param token The token withdrawn
+    /// @param owner The owner of the funds
+    /// @param receiver The receiver of the tokens
+    /// @param amount The amount withdrawn
+    event TokenWithdraw(
+        address indexed token,
+        address indexed owner,
+        address indexed receiver,
+        uint256 amount
+    );
+
     /// @notice ArbitrageProfitTaken is emitted when an arbitrage profit is taken
     /// @param profitToken The main profit token
     /// @param profitAmount The amount of `profitToken` received

@@ -1111,6 +1111,7 @@ contract LimitrVault is ILimitrVault {
         }
         traderBalance[token][sender] -= amount;
         _withdrawToken(token, to, amount);
+        emit TokenWithdraw(token,sender, to, amount);
     }
 
     function _tokenTransfer(

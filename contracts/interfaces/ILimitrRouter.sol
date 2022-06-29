@@ -149,26 +149,6 @@ interface ILimitrRouter {
         uint256 deadline
     ) external returns (uint256 cost, uint256 received);
 
-    /// @notice Buys buyToken from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param buyToken The token to buy
-    /// @param sellToken The token to sell
-    /// @param avgPrice, The maximum average price
-    /// @param maxAmountIn The maximum amount to spend
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of buyToken received
-    function buyAtAvgPrice(
-        address buyToken,
-        address sellToken,
-        uint256 avgPrice,
-        uint256 maxAmountIn,
-        address receiver,
-        uint256 deadline
-    ) external returns (uint256 cost, uint256 received);
-
     /// @notice Buys ETH from the vault with a maximum price (per order),
     ///         spending up to maxAmountIn. This function includes the fee in the
     ///         limit set by maxAmountIn
@@ -187,24 +167,6 @@ interface ILimitrRouter {
         uint256 deadline
     ) external returns (uint256 cost, uint256 received);
 
-    /// @notice Buys ETH from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param sellToken The other token of the pair WETH/xxxxx
-    /// @param avgPrice, The maximum average price
-    /// @param maxAmountIn The maximum amount to spend
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of ETH received
-    function buyETHAtAvgPrice(
-        address sellToken,
-        uint256 avgPrice,
-        uint256 maxAmountIn,
-        address payable receiver,
-        uint256 deadline
-    ) external returns (uint256 cost, uint256 received);
-
     /// @notice Buys buyToken from the vault with ETH and a maximum price (per order),
     ///         spending up to msg.value. This function includes the fee in the
     ///         limit set by msg.value
@@ -217,21 +179,6 @@ interface ILimitrRouter {
     function buyWithETHAtMaxPrice(
         address buyToken,
         uint256 maxPrice,
-        address receiver,
-        uint256 deadline
-    ) external payable returns (uint256 cost, uint256 received);
-
-    /// @notice Buys buyToken from the vault with ETH at an average price (total),
-    ///         spending up to msg.value. This function includes the fee in the
-    ///         limit set by msg.value
-    /// @param avgPrice, The maximum average price
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of buyToken received
-    function buyWithETHAtAvgPrice(
-        address buyToken,
-        uint256 avgPrice,
         address receiver,
         uint256 deadline
     ) external payable returns (uint256 cost, uint256 received);

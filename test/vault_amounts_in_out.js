@@ -78,29 +78,4 @@ contract("LimitrVault", (accounts) => {
     assert.isTrue(expCost == amtInOut.amountIn);
     assert.isTrue(expReturn == amtInOut.amountOut);
   });
-
-  it("returnAtAvgPrice and costAtAvgPrice return the correct values", async () => {
-    const depl = await twoTokenDeployment(accounts[0]);
-    await createOrders(depl);
-    const vault = await depl.vaultAtIdx(0);
-    const expCost = 107n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n);
-    const expReturn = 85n * 10n ** (depl.tokenSpecs.tka.decimals - 1n);
-    const fee = await vault.feeFor(expCost);
-    const avgPrice =
-      ((expCost + fee) * 10n ** depl.tokenSpecs.tka.decimals) / expReturn;
-    let amtInOut = await vault.costAtAvgPrice(
-      depl.tokens.tka.address,
-      expReturn,
-      avgPrice
-    );
-    assert.isTrue(amtInOut.amountIn <= expCost);
-    assert.isTrue(amtInOut.amountOut <= expReturn);
-    amtInOut = await vault.returnAtAvgPrice(
-      depl.tokens.tka.address,
-      expCost * 2n,
-      avgPrice
-    );
-    assert.isTrue(amtInOut.amountIn <= expCost);
-    assert.isTrue(amtInOut.amountOut <= expReturn);
-  });
 });

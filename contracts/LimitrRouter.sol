@@ -244,38 +244,6 @@ contract LimitrRouter is ILimitrRouter {
         _returnTokenBalance(sellToken, msg.sender);
     }
 
-    /// @notice Buys buyToken from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param buyToken The token to buy
-    /// @param sellToken The token to sell
-    /// @param avgPrice, The maximum average price
-    /// @param maxAmountIn The maximum amount to spend
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of buyToken received
-    function buyAtAvgPrice(
-        address buyToken,
-        address sellToken,
-        uint256 avgPrice,
-        uint256 maxAmountIn,
-        address receiver,
-        uint256 deadline
-    ) external override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(buyToken, sellToken);
-        _tokenTransferFrom(sellToken, msg.sender, address(this), maxAmountIn);
-        _tokenApprove(sellToken, address(v), maxAmountIn);
-        (cost, received) = v.buyAtAvgPrice(
-            buyToken,
-            avgPrice,
-            maxAmountIn,
-            receiver,
-            deadline
-        );
-        _returnTokenBalance(sellToken, msg.sender);
-    }
-
     /// @notice Buys ETH from the vault with a maximum price (per order),
     ///         spending up to maxAmountIn. This function includes the fee in the
     ///         limit set by maxAmountIn
@@ -308,38 +276,6 @@ contract LimitrRouter is ILimitrRouter {
         _returnTokenBalance(sellToken, msg.sender);
     }
 
-    /// @notice Buys ETH from the vault with an average price (total),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param sellToken The other token of the pair WETH/xxxxx
-    /// @param avgPrice, The maximum average price
-    /// @param maxAmountIn The maximum amount to spend
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of ETH received
-    function buyETHAtAvgPrice(
-        address sellToken,
-        uint256 avgPrice,
-        uint256 maxAmountIn,
-        address payable receiver,
-        uint256 deadline
-    ) external override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(weth, sellToken);
-        _tokenTransferFrom(sellToken, msg.sender, address(this), maxAmountIn);
-        _tokenApprove(sellToken, address(v), maxAmountIn);
-        (cost, received) = v.buyAtAvgPrice(
-            weth,
-            avgPrice,
-            maxAmountIn,
-            address(this),
-            deadline
-        );
-        _unwrapBalance();
-        _returnETHBalance(receiver);
-        _returnTokenBalance(sellToken, msg.sender);
-    }
-
     /// @notice Buys buyToken from the vault with ETH and a maximum price (per order),
     ///         spending up to msg.value. This function includes the fee in the
     ///         limit set by msg.value
@@ -361,34 +297,6 @@ contract LimitrRouter is ILimitrRouter {
         (cost, received) = v.buyAtMaxPrice(
             buyToken,
             maxPrice,
-            maxAmountIn,
-            receiver,
-            deadline
-        );
-        _unwrapBalance();
-        _returnETHBalance(payable(msg.sender));
-    }
-
-    /// @notice Buys buyToken from the vault with ETH at an average price (total),
-    ///         spending up to msg.value. This function includes the fee in the
-    ///         limit set by msg.value
-    /// @param avgPrice, The maximum average price
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of buyToken received
-    function buyWithETHAtAvgPrice(
-        address buyToken,
-        uint256 avgPrice,
-        address receiver,
-        uint256 deadline
-    ) external payable override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(weth, buyToken);
-        uint256 maxAmountIn = _wrapBalance();
-        _tokenApprove(weth, address(v), maxAmountIn);
-        (cost, received) = v.buyAtAvgPrice(
-            buyToken,
-            avgPrice,
             maxAmountIn,
             receiver,
             deadline

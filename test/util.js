@@ -307,24 +307,6 @@ const vaultBuyMaxPrice = async (
   );
 };
 
-const vaultBuyAvgPrice = (
-  vault,
-  buyToken,
-  sellToken,
-  price,
-  maxAmountIn,
-  receiver
-) =>
-  sellToken
-    .approve(vault.address, maxAmountIn)
-    .then(() =>
-      sendWithExtraGas(
-        vault.buyAtAvgPrice,
-        [buyToken.address, price, maxAmountIn, receiver, 0],
-        10
-      )
-    );
-
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
 // amount formatting and parsing
@@ -372,7 +354,6 @@ module.exports = {
   vaultNewSellOrder,
   vaultNewSellOrders,
   vaultBuyMaxPrice,
-  vaultBuyAvgPrice,
   ADDRESS_ZERO,
   formatAmount,
 };

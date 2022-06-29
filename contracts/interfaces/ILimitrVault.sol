@@ -380,33 +380,6 @@ interface ILimitrVault is IERC721 {
         uint256 maxPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
-    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at `avgPrice`
-    ///         (average order price). Fees not included.
-    /// @param buyToken The token to buy
-    /// @param maxAmountOut The maximum return
-    /// @param avgPrice The max average price
-    /// @return amountIn The cost
-    /// @return amountOut The return
-    function costAtAvgPrice(
-        address buyToken,
-        uint256 maxAmountOut,
-        uint256 avgPrice
-    ) external view returns (uint256 amountIn, uint256 amountOut);
-
-    /// @notice The amount `buyToken` that can be purchased with up to `maxAmountIn`,
-    ///         at `avgPrice` (average order price). Fees not included
-    /// @param buyToken The token to buy
-    /// @param maxAmountIn The maximum cost
-    /// @param avgPrice The max average price
-    /// @return amountIn The cost
-    /// @return amountOut The return
-
-    function returnAtAvgPrice(
-        address buyToken,
-        uint256 maxAmountIn,
-        uint256 avgPrice
-    ) external view returns (uint256 amountIn, uint256 amountOut);
-
     // order creation functions
 
     /// @notice Creates a new sell order order using 0 as price pointer
@@ -487,23 +460,6 @@ interface ILimitrVault is IERC721 {
     function buyAtMaxPrice(
         address buyToken,
         uint256 maxPrice,
-        uint256 maxAmountIn,
-        address receiver,
-        uint256 deadline
-    ) external returns (uint256 cost, uint256 received);
-
-    /// @notice Buys `buyToken` from the vault with an `avgPrice` (average price),
-    ///         spending up to `maxAmountIn`. This function includes the fee in the
-    ///         limit set by `maxAmountIn`
-    /// @param avgPrice, The maximum average price
-    /// @param maxAmountIn The maximum amount to spend
-    /// @param receiver The receiver of the tokens
-    /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of `buyToken` received
-    function buyAtAvgPrice(
-        address buyToken,
-        uint256 avgPrice,
         uint256 maxAmountIn,
         address receiver,
         uint256 deadline

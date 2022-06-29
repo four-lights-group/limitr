@@ -41,11 +41,13 @@ interface ILimitrVault is IERC721 {
     /// @notice OrderTaken is emitted when an order is taken (even if partially) from the vault
     /// @param token The token sold
     /// @param id The order id
+    /// @param owner The owner of the order
     /// @param amount The amount traded
     /// @param price The trade price
     event OrderTaken(
         address indexed token,
         uint256 indexed id,
+        address indexed owner,
         uint256 amount,
         uint256 price
     );

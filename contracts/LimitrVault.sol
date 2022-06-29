@@ -1111,7 +1111,7 @@ contract LimitrVault is ILimitrVault {
         }
         traderBalance[token][sender] -= amount;
         _withdrawToken(token, to, amount);
-        emit TokenWithdraw(token,sender, to, amount);
+        emit TokenWithdraw(token, sender, to, amount);
     }
 
     function _tokenTransfer(
@@ -1544,7 +1544,13 @@ contract LimitrVault is ILimitrVault {
         }
         // update trade data
         trade.update(cost, buyAmount);
-        emit OrderTaken(buyToken, orderID, buyAmount, _order.price);
+        emit OrderTaken(
+            buyToken,
+            orderID,
+            _order.trader,
+            buyAmount,
+            _order.price
+        );
         if (_order.amount != 0) {
             return false;
         }

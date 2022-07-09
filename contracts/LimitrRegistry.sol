@@ -29,9 +29,12 @@ contract LimitrRegistry is ILimitrRegistry {
     /// @return The address of the vault scanner
     address public override vaultScanner;
 
+    address private _deployer;
+
     constructor() {
         admin = msg.sender;
         feeReceiver = msg.sender;
+        _deployer = msg.sender;
     }
 
     /// @notice Initialize addresses
@@ -43,6 +46,7 @@ contract LimitrRegistry is ILimitrRegistry {
         address _vaultScanner,
         address _vaultImplementation
     ) external override {
+        require(msg.sender == _deployer, "LimitrRegistry: not the deployer");
         require(router == address(0), "LimitrRegistry: already initialized");
         router = _router;
         vaultScanner = _vaultScanner;

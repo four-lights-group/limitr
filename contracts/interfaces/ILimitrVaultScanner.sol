@@ -8,11 +8,11 @@ interface ILimitrVaultScanner {
     /// @return The registry address
     function registry() external view returns (address);
 
-    /// @return The n vaults starting at index idx that have available balance
+    /// @return The `n` vaults starting at index `idx` that have available balance
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanAvailableBalances(
+    function availableBalances(
         uint256 idx,
         uint256 n,
         address trader
@@ -20,16 +20,16 @@ interface ILimitrVaultScanner {
 
     /// @return The vaults with available balance
     /// @param trader The trader to scan for
-    function scanAvailableBalancesAll(address trader)
+    function availableBalancesAll(address trader)
         external
         view
         returns (address[] memory);
 
-    /// @return The n vaults starting at index idx that have open orders
+    /// @return The `n` vaults starting at index `idx` that have open orders
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanOpenOrders(
+    function openOrders(
         uint256 idx,
         uint256 n,
         address trader
@@ -37,17 +37,17 @@ interface ILimitrVaultScanner {
 
     /// @return The vaults with open orders
     /// @param trader The trader to scan for
-    function scanOpenOrdersAll(address trader)
+    function openOrdersAll(address trader)
         external
         view
         returns (address[] memory);
 
-    /// @return The n vaults starting at index idx that have open
+    /// @return The `n` vaults starting at index `idx` that have open
     ///         orders or available balance
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanMemorable(
+    function memorable(
         uint256 idx,
         uint256 n,
         address trader
@@ -55,25 +55,22 @@ interface ILimitrVaultScanner {
 
     /// @return The vaults with open orders or available balance
     /// @param trader The trader to scan for
-    function scanMemorableAll(address trader)
+    function memorableAll(address trader)
         external
         view
         returns (address[] memory);
 
-    /// @return The vaults containing a particular token
+    /// @return The `n` vaults starting at index `idx` containing `_token`
     /// @param idx The vault index
     /// @param n The number of vaults
-    /// @param token The token to scan for
-    function scanForToken(
+    /// @param _token The token to scan for
+    function token(
         uint256 idx,
         uint256 n,
-        address token
+        address _token
     ) external view returns (address[] memory);
 
     /// @return The vaults with a particular token
-    /// @param token The token to scan for
-    function scanForTokenAll(address token)
-        external
-        view
-        returns (address[] memory);
+    /// @param _token The token to scan for
+    function tokenAll(address _token) external view returns (address[] memory);
 }

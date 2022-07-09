@@ -99,7 +99,7 @@ const vaultTracker = function (vault) {
         );
       },
     },
-    newSellOrder: function (token, price, amount, owner, dontSort) {
+    newOrder: function (token, price, amount, owner, dontSort) {
       if (!this.orders.orders[token]) {
         this.orders.orders[token] = [];
       }
@@ -113,8 +113,8 @@ const vaultTracker = function (vault) {
         this.orders.sort();
       }
     },
-    newSellOrders: function (orders) {
-      orders.forEach((order) => this.newSellOrder(...order.concat([false])));
+    newOrders: function (orders) {
+      orders.forEach((order) => this.newOrder(...order.concat([false])));
       this.orders.sort();
     },
     cancelOrder: function (orderID, amount) {
@@ -252,21 +252,14 @@ const ethTokenDeployment = async (owner, feeReceiver) => {
   return depl;
 };
 
-const vaultNewSellOrder = async (vault, token, price, amount, owner) => {
+const vaultNewOrder = async (vault, token, price, amount, owner) => {
   await token.approve(vault.address, amount, { from: owner });
-  const resp = await vault.newSellOrder(
-    token.address,
-    price,
-    amount,
-    owner,
-    0,
-    {
-      from: owner,
-    }
-  );
-  const logs = resp.logs.filter((e) => e.event == "NewSellOrder");
+  const resp = await vault.newOrder(token.address, price, amount, owner, 0, {
+    from: owner,
+  });
+  const logs = resp.logs.filter((e) => e.event == "OrderCreated");
   if (logs.length != 1) {
-    throw new Error("invalid count of NewSellOrder events");
+    throw new Error("invalid count of OrderCreated events");
   }
   if (logs[0].args.token != token.address) {
     throw new Error("token address mismatch");
@@ -283,23 +276,23 @@ const vaultNewSellOrder = async (vault, token, price, amount, owner) => {
   return resp;
 };
 
-const vaultNewSellOrders = (vault, orders) =>
+const vaultNewOrders = (vault, orders) =>
   orders.reduce(
-    (ac, v) => ac.then(() => vaultNewSellOrder(vault, ...v)),
+    (ac, v) => ac.then(() => vaultNewOrder(vault, ...v)),
     Promise.resolve(undefined)
   );
 
-const vaultBuyMaxPrice = async (
+const vaultTradeMaxPrice = async (
   vault,
-  buyToken,
-  sellToken,
+  wantToken,
+  gotToken,
   price,
   maxAmountIn,
   receiver
 ) => {
-  await sellToken.approve(vault.address, maxAmountIn);
-  return await vault.buyAtMaxPrice(
-    buyToken.address,
+  await gotToken.approve(vault.address, maxAmountIn);
+  return await vault.tradeAtMaxPrice(
+    wantToken.address,
     price,
     maxAmountIn,
     receiver,
@@ -351,9 +344,9 @@ module.exports = {
   newDeployment,
   twoTokenDeployment,
   ethTokenDeployment,
-  vaultNewSellOrder,
-  vaultNewSellOrders,
-  vaultBuyMaxPrice,
+  vaultNewOrder,
+  vaultNewOrders,
+  vaultTradeMaxPrice,
   ADDRESS_ZERO,
   formatAmount,
 };

@@ -15,11 +15,11 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
         registry = _registry;
     }
 
-    /// @return The n vaults starting at index idx that have available balance
+    /// @return The `n` vaults starting at index `idx` that have available balance
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanAvailableBalances(
+    function availableBalances(
         uint256 idx,
         uint256 n,
         address trader
@@ -38,25 +38,25 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
 
     /// @return The vaults with available balance
     /// @param trader The trader to scan for
-    function scanAvailableBalancesAll(address trader)
+    function availableBalancesAll(address trader)
         external
         view
         override
         returns (address[] memory)
     {
         return
-            scanAvailableBalances(
+            availableBalances(
                 0,
                 ILimitrRegistry(registry).vaultsCount(),
                 trader
             );
     }
 
-    /// @return The n vaults starting at index idx that have open orders
+    /// @return The `n` vaults starting at index `idx` that have open orders
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanOpenOrders(
+    function openOrders(
         uint256 idx,
         uint256 n,
         address trader
@@ -75,22 +75,21 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
 
     /// @return The vaults with open orders
     /// @param trader The trader to scan for
-    function scanOpenOrdersAll(address trader)
+    function openOrdersAll(address trader)
         external
         view
         override
         returns (address[] memory)
     {
-        return
-            scanOpenOrders(0, ILimitrRegistry(registry).vaultsCount(), trader);
+        return openOrders(0, ILimitrRegistry(registry).vaultsCount(), trader);
     }
 
-    /// @return The n vaults starting at index idx that have open
+    /// @return The `n` vaults starting at index `idx` that have open
     ///         orders or available balance
     /// @param idx The vault index
     /// @param n The number of vaults
     /// @param trader The trader to scan for
-    function scanMemorable(
+    function memorable(
         uint256 idx,
         uint256 n,
         address trader
@@ -109,31 +108,30 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
 
     /// @return The vaults with open orders or available balance
     /// @param trader The trader to scan for
-    function scanMemorableAll(address trader)
+    function memorableAll(address trader)
         external
         view
         override
         returns (address[] memory)
     {
-        return
-            scanMemorable(0, ILimitrRegistry(registry).vaultsCount(), trader);
+        return memorable(0, ILimitrRegistry(registry).vaultsCount(), trader);
     }
 
-    /// @return The vaults containing a particular token
+    /// @return The `n` vaults starting at index `idx` containing `token`
     /// @param idx The vault index
     /// @param n The number of vaults
-    /// @param token The token to scan for
-    function scanForToken(
+    /// @param _token The token to scan for
+    function token(
         uint256 idx,
         uint256 n,
-        address token
+        address _token
     ) public view override returns (address[] memory) {
         address[] memory r = ILimitrRegistry(registry).vaults(idx, n);
         for (uint256 i = 0; i < r.length; i++) {
             if (r[i] == address(0)) {
                 break;
             }
-            if (!_vaultGotToken(r[i], token)) {
+            if (!_vaultGotToken(r[i], _token)) {
                 r[i] = address(0);
             }
         }
@@ -141,14 +139,14 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
     }
 
     /// @return The vaults with a particular token
-    /// @param token The token to scan for
-    function scanForTokenAll(address token)
+    /// @param _token The token to scan for
+    function tokenAll(address _token)
         external
         view
         override
         returns (address[] memory)
     {
-        return scanForToken(0, ILimitrRegistry(registry).vaultsCount(), token);
+        return token(0, ILimitrRegistry(registry).vaultsCount(), _token);
     }
 
     function _vaultGotOrders(address _vault, address trader)
@@ -182,12 +180,12 @@ contract LimitrVaultScanner is ILimitrVaultScanner {
             _vaultGotOrders(_vault, trader) || _vaultGotBalance(_vault, trader);
     }
 
-    function _vaultGotToken(address _vault, address token)
+    function _vaultGotToken(address _vault, address _token)
         internal
         view
         returns (bool)
     {
         ILimitrVault v = ILimitrVault(_vault);
-        return v.token0() == token || v.token1() == token;
+        return v.token0() == _token || v.token1() == _token;
     }
 }

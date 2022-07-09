@@ -14,13 +14,13 @@ interface ILimitrVault is IERC721 {
     /// @param newFeePercentage The new fee percentage
     event NewFeePercentage(uint256 oldFeePercentage, uint256 newFeePercentage);
 
-    /// @notice NewSellOrder is emitted when a new order is created
-    /// @param token The token to sell, will be either token0 or token1
+    /// @notice OrderCreated is emitted when a new order is created
+    /// @param token The token traded in, will be either token0 or token1
     /// @param id The id of the order
     /// @param trader The trader address
     /// @param price The price of the order
     /// @param amount The amount deposited
-    event NewSellOrder(
+    event OrderCreated(
         address indexed token,
         uint256 indexed id,
         address indexed trader,
@@ -29,7 +29,7 @@ interface ILimitrVault is IERC721 {
     );
 
     /// @notice OrderCanceled is emitted when a trader cancels (even if partially) an order
-    /// @param token The token to sell, will be either token0 or token1
+    /// @param token The token traded in, will be either token0 or token1
     /// @param id The order id
     /// @param amount The amount canceled
     event OrderCanceled(
@@ -76,7 +76,7 @@ interface ILimitrVault is IERC721 {
         address indexed receiver
     );
 
-    /// @notice FeeCollected is emitted when the fee on a buy is collected
+    /// @notice FeeCollected is emitted when the fee on a trade is collected
     /// @param token The fee token
     /// @param amount The amount collected
     event FeeCollected(address indexed token, uint256 amount);
@@ -333,80 +333,81 @@ interface ILimitrVault is IERC721 {
 
     // trade amounts calculation functions
 
-    /// @return The cost of buying `buyToken` at the provided `price`. Fees not included
-    /// @param buyToken The token to buy
-    /// @param amountOut The return
-    /// @param price The buy price
+    /// @return The cost of `amountOut` of `wantToken` at the provided `price`.
+    ///         Fees not included
+    /// @param wantToken The token to receive
+    /// @param amountOut The amount of `wantToken` to receive
+    /// @param price The trade price
     function costAtPrice(
-        address buyToken,
+        address wantToken,
         uint256 amountOut,
         uint256 price
     ) external view returns (uint256);
 
-    /// @return The amount of `buyToken` than can be purchased with the provided
-    ///         `amount` at `price`. Fees not included.
-    /// @param buyToken The token to buy
+    /// @return The return of trading `amountIn` for `wantToken` at then provided
+    ///         `price`. Fees not included.
+    /// @param wantToken The token to receive
     /// @param amountIn The cost
-    /// @param price The sell price
+    /// @param price The trade price
     function returnAtPrice(
-        address buyToken,
+        address wantToken,
         uint256 amountIn,
         uint256 price
     ) external view returns (uint256);
 
-    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at a `maxPrice`
-    ///         (maximum order price). Fees not included
-    /// @param buyToken The token to buy
+    /// @notice The cost/return of up to `maxAmountOut` of `wantToken` at a
+    ///         maximum of `maxPrice`. Fees not included
+    /// @param wantToken The token to receive
     /// @param maxAmountOut The maximum return
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
     function costAtMaxPrice(
-        address buyToken,
+        address wantToken,
         uint256 maxAmountOut,
         uint256 maxPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
-    /// @notice The amount of `buyToken` that can be purchased with up to
-    ///         `maxAmountIn`, at a `maxPrice` (maximum order price). Fees not included.
-    /// @param buyToken The token to buy
+    /// @notice The cost/return of trading up to `maxAmountIn` for `wantToken`
+    ///         at a maximum price of `maxPrice`. Fees not included.
+    /// @param wantToken The token to receive
     /// @param maxAmountIn The maximum cost
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
     function returnAtMaxPrice(
-        address buyToken,
+        address wantToken,
         uint256 maxAmountIn,
         uint256 maxPrice
     ) external view returns (uint256 amountIn, uint256 amountOut);
 
     // order creation functions
 
-    /// @notice Creates a new sell order order using 0 as price pointer
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order order using 0 as price pointer
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @return The order ID
-    function newSellOrder(
-        address sellToken,
+    function newOrder(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
         uint256 deadline
     ) external returns (uint256);
 
-    /// @notice Creates a new sell order using a `pointer`
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order using a `pointer`
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointer The start pointer
     /// @return The order ID
-    function newSellOrderWithPointer(
-        address sellToken,
+    function newOrderWithPointer(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -414,16 +415,16 @@ interface ILimitrVault is IERC721 {
         uint256 pointer
     ) external returns (uint256);
 
-    /// @notice Creates a new sell order using an array of possible `pointers`
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order using an array of possible `pointers`
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointers The potential pointers
     /// @return The order ID
-    function newSellOrderWithPointers(
-        address sellToken,
+    function newOrderWithPointers(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -447,18 +448,18 @@ interface ILimitrVault is IERC721 {
 
     // trading functions
 
-    /// @notice Buys `buyToken` from the vault with a `maxPrice` (per order),
-    ///         spending up to `maxAmountIn`. This function includes the fee in the
-    ///         limit set by `maxAmountIn`
-    /// @param buyToken The token to buy
+    /// @notice Trades up to `maxAmountIn` for `wantToken` with a `maxPrice`
+    ///         (per order). This function includes the fee in the limit set
+    ///         by `maxAmountIn`
+    /// @param wantToken The token to receive
     /// @param maxPrice The price of the trade
     /// @param maxAmountIn The maximum cost
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of `buyToken` received
-    function buyAtMaxPrice(
-        address buyToken,
+    /// @return received The amount of `wantToken` received
+    function tradeAtMaxPrice(
+        address wantToken,
         uint256 maxPrice,
         uint256 maxAmountIn,
         address receiver,

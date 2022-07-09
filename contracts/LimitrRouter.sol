@@ -27,26 +27,26 @@ contract LimitrRouter is ILimitrRouter {
 
     // order creation functions
 
-    /// @notice Creates a new sell order order using 0 as price pointer
-    /// @param sellToken The token to sell
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new order using 0 as price pointer
+    /// @param gotToken The token to trade in
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @return The order ID
-    function newSellOrder(
-        address sellToken,
-        address buyToken,
+    function newOrder(
+        address gotToken,
+        address wantToken,
         uint256 price,
         uint256 amount,
         address trader,
         uint256 deadline
     ) external override returns (uint256) {
         return
-            newSellOrderWithPointer(
-                sellToken,
-                buyToken,
+            newOrderWithPointer(
+                gotToken,
+                wantToken,
                 price,
                 amount,
                 trader,
@@ -55,18 +55,18 @@ contract LimitrRouter is ILimitrRouter {
             );
     }
 
-    /// @notice Creates a new sell order using the provided pointer
-    /// @param sellToken The token to sell
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new order using the provided `pointer`
+    /// @param gotToken The token to trade in
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointer The start pointer
     /// @return The order ID
-    function newSellOrderWithPointer(
-        address sellToken,
-        address buyToken,
+    function newOrderWithPointer(
+        address gotToken,
+        address wantToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -76,9 +76,9 @@ contract LimitrRouter is ILimitrRouter {
         uint256[] memory pointers = new uint256[](1);
         pointers[0] = pointer;
         return
-            newSellOrderWithPointers(
-                sellToken,
-                buyToken,
+            newOrderWithPointers(
+                gotToken,
+                wantToken,
                 price,
                 amount,
                 trader,
@@ -87,30 +87,30 @@ contract LimitrRouter is ILimitrRouter {
             );
     }
 
-    /// @notice Creates a new sell order using the provided pointers
-    /// @param sellToken The token to sell
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new order using the provided `pointers`
+    /// @param gotToken The token to trade in
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointers The potential pointers
     /// @return The order ID
-    function newSellOrderWithPointers(
-        address sellToken,
-        address buyToken,
+    function newOrderWithPointers(
+        address gotToken,
+        address wantToken,
         uint256 price,
         uint256 amount,
         address trader,
         uint256 deadline,
         uint256[] memory pointers
     ) public override returns (uint256) {
-        ILimitrVault v = _getOrCreateVault(sellToken, buyToken);
-        _tokenTransferFrom(sellToken, msg.sender, address(this), amount);
-        _tokenApprove(sellToken, address(v), amount);
+        ILimitrVault v = _getOrCreateVault(gotToken, wantToken);
+        _tokenTransferFrom(gotToken, msg.sender, address(this), amount);
+        _tokenApprove(gotToken, address(v), amount);
         return
-            v.newSellOrderWithPointers(
-                sellToken,
+            v.newOrderWithPointers(
+                gotToken,
                 price,
                 amount,
                 trader,
@@ -119,30 +119,30 @@ contract LimitrRouter is ILimitrRouter {
             );
     }
 
-    /// @notice Creates a new ETH sell order order using 0 as price pointer
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new ETH order order using 0 as price pointer
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @return The order ID
-    function newETHSellOrder(
-        address buyToken,
+    function newETHOrder(
+        address wantToken,
         uint256 price,
         address trader,
         uint256 deadline
     ) external payable override returns (uint256) {
-        return newETHSellOrderWithPointer(buyToken, price, trader, deadline, 0);
+        return newETHOrderWithPointer(wantToken, price, trader, deadline, 0);
     }
 
-    /// @notice Creates a new ETH sell order using the provided pointer
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new ETH order using the provided `pointer`
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointer The start pointer
     /// @return The order ID
-    function newETHSellOrderWithPointer(
-        address buyToken,
+    function newETHOrderWithPointer(
+        address wantToken,
         uint256 price,
         address trader,
         uint256 deadline,
@@ -151,8 +151,8 @@ contract LimitrRouter is ILimitrRouter {
         uint256[] memory pointers = new uint256[](1);
         pointers[0] = pointer;
         return
-            newETHSellOrderWithPointers(
-                buyToken,
+            newETHOrderWithPointers(
+                wantToken,
                 price,
                 trader,
                 deadline,
@@ -160,25 +160,25 @@ contract LimitrRouter is ILimitrRouter {
             );
     }
 
-    /// @notice Creates a new ETH sell order using the provided pointers
-    /// @param buyToken The token to receive in exchange
+    /// @notice Creates a new ETH order using the provided `pointers`
+    /// @param wantToken The token to receive in exchange
     /// @param price The order price
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointers The potential pointers
     /// @return The order ID
-    function newETHSellOrderWithPointers(
-        address buyToken,
+    function newETHOrderWithPointers(
+        address wantToken,
         uint256 price,
         address trader,
         uint256 deadline,
         uint256[] memory pointers
     ) public payable override returns (uint256) {
-        ILimitrVault v = _getOrCreateVault(weth, buyToken);
+        ILimitrVault v = _getOrCreateVault(weth, wantToken);
         uint256 amt = _wrapBalance();
         _tokenApprove(weth, address(v), amt);
         return
-            v.newSellOrderWithPointers(
+            v.newOrderWithPointers(
                 weth,
                 price,
                 amt,
@@ -191,19 +191,19 @@ contract LimitrRouter is ILimitrRouter {
     // order cancellation functions
 
     /// @notice Cancel an WETH order and receive ETH
-    /// @param buyToken The other token of the pair WETH/xxxxx
+    /// @param wantToken The other token of the pair WETH/xxxxx
     /// @param orderID The order ID
     /// @param amount The amount to cancel. 0 cancels the total amount
     /// @param receiver The receiver of the remaining unsold tokens
     /// @param deadline Validity deadline
     function cancelETHOrder(
-        address buyToken,
+        address wantToken,
         uint256 orderID,
         uint256 amount,
         address payable receiver,
         uint256 deadline
     ) external override {
-        ILimitrVault v = _getExistingVault(weth, buyToken);
+        ILimitrVault v = _getExistingVault(weth, wantToken);
         require(v.isAllowed(msg.sender, orderID), "LimitrRouter: not allowed");
         v.cancelOrder(orderID, amount, address(this), deadline);
         _unwrapBalance();
@@ -212,59 +212,59 @@ contract LimitrRouter is ILimitrRouter {
 
     // trading functions
 
-    /// @notice Buys buyToken from the vault with a maximum price (per order),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param buyToken The token to buy
-    /// @param sellToken The token to sell
+    /// @notice Trades up to `maxAmountIn` of `gotToken` for `wantToken` from the
+    ///         vault with a maximum price (per order). This function includes
+    ///         the fee in the limit set by `maxAmountIn`
+    /// @param wantToken The token to trade in
+    /// @param gotToken The token to receive
     /// @param maxPrice The price of the trade
     /// @param maxAmountIn The maximum amount to spend
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
-    /// @return cost The amount spent
-    /// @return received The amount of buyToken received
-    function buyAtMaxPrice(
-        address buyToken,
-        address sellToken,
+    /// @return cost The amount of `gotToken` spent
+    /// @return received The amount of `wantToken` received
+    function tradeAtMaxPrice(
+        address wantToken,
+        address gotToken,
         uint256 maxPrice,
         uint256 maxAmountIn,
         address receiver,
         uint256 deadline
     ) external override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(buyToken, sellToken);
-        _tokenTransferFrom(sellToken, msg.sender, address(this), maxAmountIn);
-        _tokenApprove(sellToken, address(v), maxAmountIn);
-        (cost, received) = v.buyAtMaxPrice(
-            buyToken,
+        ILimitrVault v = _getExistingVault(wantToken, gotToken);
+        _tokenTransferFrom(gotToken, msg.sender, address(this), maxAmountIn);
+        _tokenApprove(gotToken, address(v), maxAmountIn);
+        (cost, received) = v.tradeAtMaxPrice(
+            wantToken,
             maxPrice,
             maxAmountIn,
             receiver,
             deadline
         );
-        _returnTokenBalance(sellToken, msg.sender);
+        _returnTokenBalance(gotToken, msg.sender);
     }
 
-    /// @notice Buys ETH from the vault with a maximum price (per order),
-    ///         spending up to maxAmountIn. This function includes the fee in the
-    ///         limit set by maxAmountIn
-    /// @param sellToken The other token of the pair WETH/xxxxx
+    /// @notice Trades up to `maxAmountIn` of `gotToken` for ETH from the
+    ///         vault with a maximum price (per order). This function includes
+    ///         the fee in the limit set by `maxAmountIn`
+    /// @param gotToken The other token of the pair WETH/xxxxx
     /// @param maxPrice The price of the trade
     /// @param maxAmountIn The maximum amount to spend
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
     /// @return received The amount of ETH received
-    function buyETHAtMaxPrice(
-        address sellToken,
+    function tradeForETHAtMaxPrice(
+        address gotToken,
         uint256 maxPrice,
         uint256 maxAmountIn,
         address payable receiver,
         uint256 deadline
     ) external override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(weth, sellToken);
-        _tokenTransferFrom(sellToken, msg.sender, address(this), maxAmountIn);
-        _tokenApprove(sellToken, address(v), maxAmountIn);
-        (cost, received) = v.buyAtMaxPrice(
+        ILimitrVault v = _getExistingVault(weth, gotToken);
+        _tokenTransferFrom(gotToken, msg.sender, address(this), maxAmountIn);
+        _tokenApprove(gotToken, address(v), maxAmountIn);
+        (cost, received) = v.tradeAtMaxPrice(
             weth,
             maxPrice,
             maxAmountIn,
@@ -273,29 +273,28 @@ contract LimitrRouter is ILimitrRouter {
         );
         _unwrapBalance();
         _returnETHBalance(receiver);
-        _returnTokenBalance(sellToken, msg.sender);
+        _returnTokenBalance(gotToken, msg.sender);
     }
 
-    /// @notice Buys buyToken from the vault with ETH and a maximum price (per order),
-    ///         spending up to msg.value. This function includes the fee in the
-    ///         limit set by msg.value
-    /// @param buyToken The token to buy
+    /// @notice Trades ETH for `wantToken` from the vault with a maximum price
+    ///         (per order). This function includes the fee in the limit set by `msg.value`
+    /// @param wantToken The token to receive
     /// @param maxPrice The price of the trade
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount of ETH spent
-    /// @return received The amount of buyToken received
-    function buyWithETHAtMaxPrice(
-        address buyToken,
+    /// @return received The amount of `wantToken` received
+    function tradeETHAtMaxPrice(
+        address wantToken,
         uint256 maxPrice,
         address receiver,
         uint256 deadline
     ) external payable override returns (uint256 cost, uint256 received) {
-        ILimitrVault v = _getExistingVault(weth, buyToken);
+        ILimitrVault v = _getExistingVault(weth, wantToken);
         uint256 maxAmountIn = _wrapBalance();
         _tokenApprove(weth, address(v), maxAmountIn);
-        (cost, received) = v.buyAtMaxPrice(
-            buyToken,
+        (cost, received) = v.tradeAtMaxPrice(
+            wantToken,
             maxPrice,
             maxAmountIn,
             receiver,
@@ -306,15 +305,15 @@ contract LimitrRouter is ILimitrRouter {
     }
 
     /// @notice Withdraw trader balance in ETH
-    /// @param sellToken The other token of the pair WETH/xxxxx
+    /// @param gotToken The other token of the pair WETH/xxxxx
     /// @param to The receiver address
     /// @param amount The amount to withdraw
     function withdrawETH(
-        address sellToken,
+        address gotToken,
         address payable to,
         uint256 amount
     ) external override {
-        ILimitrVault v = _getExistingVault(weth, sellToken);
+        ILimitrVault v = _getExistingVault(weth, gotToken);
         v.withdrawFor(weth, msg.sender, address(this), amount);
         _unwrapBalance();
         _returnETHBalance(to);

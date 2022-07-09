@@ -1,22 +1,22 @@
-const { twoTokenDeployment, vaultNewSellOrders } = require("./util");
+const { twoTokenDeployment, vaultNewOrders } = require("./util");
 
 contract("LimitrVault", (accounts) => {
   it("returnAtPrice and costAtPrice return the correct values", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     const vault = await depl.vaultAtIdx(0);
-    const buyToken = depl.tokens.tka.address;
+    const wantToken = depl.tokens.tka.address;
     const nTokens = 3n;
     const amount = nTokens * 10n ** depl.tokenSpecs.tka.decimals;
     const price = 2n * 10n ** depl.tokenSpecs.tkb.decimals;
-    const cost = await vault.costAtPrice(buyToken, amount, price);
+    const cost = await vault.costAtPrice(wantToken, amount, price);
     assert.isTrue(cost == nTokens * price);
-    const ret = await vault.returnAtPrice(buyToken, cost, price);
+    const ret = await vault.returnAtPrice(wantToken, cost, price);
     assert.isTrue(ret == amount);
   });
 
   const createOrders = async (depl) => {
     const vault = await depl.vaultAtIdx(0);
-    await vaultNewSellOrders(
+    await vaultNewOrders(
       vault,
       [
         [

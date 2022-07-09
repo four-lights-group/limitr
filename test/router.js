@@ -1,7 +1,7 @@
 const {
   assertReason,
   ethTokenDeployment,
-  vaultNewSellOrders,
+  vaultNewOrders,
   toBigInt,
 } = require("./util");
 
@@ -27,7 +27,7 @@ contract("LimitrRouter", (accounts) => {
         40n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
       ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
-    await vaultNewSellOrders(vault, tkaOrders);
+    await vaultNewOrders(vault, tkaOrders);
     const wethOrders = [
       [
         13n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
@@ -51,7 +51,7 @@ contract("LimitrRouter", (accounts) => {
         wethOrders.map((v) => v[1]).reduce((ac, v) => ac + v, 0n) * 2n
       ).toString(),
     });
-    await vaultNewSellOrders(vault, wethOrders);
+    await vaultNewOrders(vault, wethOrders);
   };
 
   it("can only cancel own orders or if approved", async () => {
@@ -110,7 +110,7 @@ contract("LimitrRouter", (accounts) => {
     assert.isTrue(postBalance - preBalance >= order5.amount - gasCost);
   });
 
-  it("returns excess tokens after buy max price and sends the correct amount of purchased tokens", async () => {
+  it("returns excess tokens after trading at max price and sends the correct amount of purchased tokens", async () => {
     const depl = await ethTokenDeployment(accounts[0], accounts[2]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -126,7 +126,7 @@ contract("LimitrRouter", (accounts) => {
     const tkaBalancePre = await depl.tokens.tka.balanceOf(accounts[0]);
     const wethBalancePre = await depl.weth.balanceOf(accounts[0]);
     await depl.tokens.tka.approve(depl.router.address, totalAmount * 2n);
-    await depl.router.buyAtMaxPrice(
+    await depl.router.tradeAtMaxPrice(
       depl.weth.address,
       depl.tokens.tka.address,
       order.price,
@@ -140,7 +140,7 @@ contract("LimitrRouter", (accounts) => {
     assert.isTrue(wethBalancePost - wethBalancePre == orderCost.amountOut);
   });
 
-  it("returns excess ETH after buy max price and sends the correct amount of purchased tokens", async () => {
+  it("returns excess ETH after trading at max price and sends the correct amount of purchased tokens", async () => {
     const depl = await ethTokenDeployment(accounts[0], accounts[2]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -155,7 +155,7 @@ contract("LimitrRouter", (accounts) => {
     const totalAmount = orderCost.amountIn + fee;
     const tkaBalancePre = await depl.tokens.tka.balanceOf(accounts[0]);
     const ethBalancePre = toBigInt(await web3.eth.getBalance(accounts[1]));
-    await depl.router.buyWithETHAtMaxPrice(
+    await depl.router.tradeETHAtMaxPrice(
       depl.tokens.tka.address,
       order.price,
       accounts[0],
@@ -181,7 +181,7 @@ contract("LimitrRouter", (accounts) => {
     );
     const fee = await vault.feeFor(orderCost.amountIn);
     const totalAmount = orderCost.amountIn + fee;
-    await depl.router.buyWithETHAtMaxPrice(
+    await depl.router.tradeETHAtMaxPrice(
       depl.tokens.tka.address,
       order.price,
       accounts[0],

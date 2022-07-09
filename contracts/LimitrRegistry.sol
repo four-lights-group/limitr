@@ -140,7 +140,7 @@ contract LimitrRegistry is ILimitrRegistry {
         return vault.length;
     }
 
-    /// @return The n vaults at index idx
+    /// @return The `n` vaults at index `idx`
     /// @param idx The vault index
     /// @param n The number of vaults
     function vaults(uint256 idx, uint256 n)

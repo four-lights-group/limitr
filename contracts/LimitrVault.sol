@@ -43,6 +43,12 @@ contract LimitrVault is ILimitrVault {
     using SortedDoubleLinkedList for SDLL;
     using TradeHandlerLib for TradeHandler;
 
+    address private _deployer;
+
+    constructor() {
+        _deployer = msg.sender;
+    }
+
     /// @notice Initialize the market. Must be called by the factory once at deployment time
     /// @param _token0 The first token of the pair
     /// @param _token1 The second token of the pair
@@ -224,7 +230,7 @@ contract LimitrVault is ILimitrVault {
         return _orders[token].next(currentID);
     }
 
-    /// @notice Returns n order IDs from the current for the provided `token`
+    /// @notice Returns `n` order IDs from the `current` for the provided `token`
     /// @param token Must be `token0` or `token1`
     /// @param current The current ID
     /// @param n The number of IDs to return
@@ -453,90 +459,90 @@ contract LimitrVault is ILimitrVault {
 
     // trade amounts calculation functions
 
-    /// @return The cost of buying `buyToken` at the provided `price`. Fees not included
-    /// @param buyToken The token to buy
-    /// @param amountOut The return
-    /// @param price The buy price
+    /// @return The cost of `amountOut` of `wantToken` at the provided `price`.
+    ///         Fees not included
+    /// @param wantToken The token to receive
+    /// @param amountOut The amount of `wantToken` to receive
     function costAtPrice(
-        address buyToken,
+        address wantToken,
         uint256 amountOut,
         uint256 price
     ) public view override returns (uint256) {
         if (price == 0 || amountOut == 0) {
             return 0;
         }
-        return (price * amountOut) / _oneToken[buyToken];
+        return (price * amountOut) / _oneToken[wantToken];
     }
 
-    /// @return The amount of `buyToken` than can be purchased with the provided
-    ///         `amount` at `price`. Fees not included.
-    /// @param buyToken The token to buy
+    /// @return The return of trading `amountIn` for `wantToken` at then provided
+    ///         `price`. Fees not included.
+    /// @param wantToken The token to receive
     /// @param amountIn The cost
-    /// @param price The sell price
+    /// @param price The trade price
     function returnAtPrice(
-        address buyToken,
+        address wantToken,
         uint256 amountIn,
         uint256 price
     ) public view override returns (uint256) {
         if (price == 0 || amountIn == 0) {
             return 0;
         }
-        return (_oneToken[buyToken] * amountIn) / price;
+        return (_oneToken[wantToken] * amountIn) / price;
     }
 
-    /// @notice Cost of buying `buyToken` up to `maxAmountOut` at a `maxPrice`
-    ///         (maximum order price). Fees not included
-    /// @param buyToken The token to buy
+    /// @notice The cost/return of up to `maxAmountOut` of `wantToken` at a
+    ///         maximum of `maxPrice`. Fees not included
+    /// @param wantToken The token to receive
     /// @param maxAmountOut The maximum return
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
     function costAtMaxPrice(
-        address buyToken,
+        address wantToken,
         uint256 maxAmountOut,
         uint256 maxPrice
     ) public view override returns (uint256 amountIn, uint256 amountOut) {
         return
             _returnAtMaxPrice(
-                buyToken,
-                costAtPrice(buyToken, maxAmountOut, maxPrice),
+                wantToken,
+                costAtPrice(wantToken, maxAmountOut, maxPrice),
                 maxPrice
             );
     }
 
-    /// @notice The amount of `buyToken` that can be purchased with up to
-    ///         `maxAmountIn`, at a `maxPrice` (maximum order price). Fees not included.
-    /// @param buyToken The token to buy
+    /// @notice The cost/return of trading up to `maxAmountIn` for `wantToken`
+    ///         at a maximum price of `maxPrice`. Fees not included.
+    /// @param wantToken The token to receive
     /// @param maxAmountIn The maximum cost
     /// @param maxPrice The max price
     /// @return amountIn The cost
     /// @return amountOut The return
     function returnAtMaxPrice(
-        address buyToken,
+        address wantToken,
         uint256 maxAmountIn,
         uint256 maxPrice
     ) public view override returns (uint256 amountIn, uint256 amountOut) {
-        return _returnAtMaxPrice(buyToken, maxAmountIn, maxPrice);
+        return _returnAtMaxPrice(wantToken, maxAmountIn, maxPrice);
     }
 
     // order creation functions
 
-    /// @notice Creates a new sell order order using 0 as price pointer
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order order using 0 as price pointer
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @return The order ID
-    function newSellOrder(
-        address sellToken,
+    function newOrder(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
         uint256 deadline
     ) public override returns (uint256) {
-        (uint256 orderID, bool created) = _newSellOrderWithPointer(
-            sellToken,
+        (uint256 orderID, bool created) = _newOrderWithPointer(
+            gotToken,
             price,
             amount,
             trader,
@@ -547,24 +553,24 @@ contract LimitrVault is ILimitrVault {
         return orderID;
     }
 
-    /// @notice Creates a new sell order using a `pointer`
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order using a `pointer`
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointer The start pointer
     /// @return The order ID
-    function newSellOrderWithPointer(
-        address sellToken,
+    function newOrderWithPointer(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
         uint256 deadline,
         uint256 pointer
     ) public override returns (uint256) {
-        (uint256 orderID, bool created) = _newSellOrderWithPointer(
-            sellToken,
+        (uint256 orderID, bool created) = _newOrderWithPointer(
+            gotToken,
             price,
             amount,
             trader,
@@ -575,16 +581,16 @@ contract LimitrVault is ILimitrVault {
         return orderID;
     }
 
-    /// @notice Creates a new sell order using an array of possible `pointers`
-    /// @param sellToken The token to sell
+    /// @notice Creates a new order using an array of possible `pointers`
+    /// @param gotToken The token to trade in
     /// @param price The order price
-    /// @param amount The amount of sellToken to trade
+    /// @param amount The amount of `gotToken` to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @param pointers The potential pointers
     /// @return The order ID
-    function newSellOrderWithPointers(
-        address sellToken,
+    function newOrderWithPointers(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -592,8 +598,8 @@ contract LimitrVault is ILimitrVault {
         uint256[] memory pointers
     ) public override returns (uint256) {
         for (uint256 i = 0; i < pointers.length; i++) {
-            (uint256 orderID, bool created) = _newSellOrderWithPointer(
-                sellToken,
+            (uint256 orderID, bool created) = _newOrderWithPointer(
+                gotToken,
                 price,
                 amount,
                 trader,
@@ -629,18 +635,18 @@ contract LimitrVault is ILimitrVault {
 
     // trading functions
 
-    /// @notice Buys `buyToken` from the vault with a `maxPrice` (per order),
-    ///         spending up to `maxAmountIn`. This function includes the fee in the
-    ///         limit set by `maxAmountIn`
-    /// @param buyToken The token to buy
+    /// @notice Trades up to `maxAmountIn` for `wantToken` with a `maxPrice`
+    ///         (per order). This function includes the fee in the limit set
+    ///         by `maxAmountIn`
+    /// @param wantToken The token to receive
     /// @param maxPrice The price of the trade
     /// @param maxAmountIn The maximum cost
     /// @param receiver The receiver of the tokens
     /// @param deadline Validity deadline
     /// @return cost The amount spent
-    /// @return received The amount of `buyToken` received
-    function buyAtMaxPrice(
-        address buyToken,
+    /// @return received The amount of `wantToken` received
+    function tradeAtMaxPrice(
+        address wantToken,
         uint256 maxPrice,
         uint256 maxAmountIn,
         address receiver,
@@ -649,11 +655,11 @@ contract LimitrVault is ILimitrVault {
         public
         override
         withinDeadline(deadline)
-        validToken(buyToken)
+        validToken(wantToken)
         lock
         returns (uint256, uint256)
     {
-        return _trade(buyToken, maxPrice, maxAmountIn, receiver, _postTrade);
+        return _trade(wantToken, maxPrice, maxAmountIn, receiver, _postTrade);
     }
 
     // trader balances
@@ -1081,15 +1087,15 @@ contract LimitrVault is ILimitrVault {
     }
 
     /// @dev Creates a new order using the provided pointer
-    /// @param sellToken The token to sell
-    /// @param price The sell price
+    /// @param gotToken The token to trade in
+    /// @param price The trade price
     /// @param amount The amount to trade
     /// @param trader The owner of the order
     /// @param deadline Validity deadline
     /// @return orderID The order ID
     /// @return created True on success
-    function _newSellOrderWithPointer(
-        address sellToken,
+    function _newOrderWithPointer(
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -1098,12 +1104,12 @@ contract LimitrVault is ILimitrVault {
     )
         internal
         withinDeadline(deadline)
-        validToken(sellToken)
+        validToken(gotToken)
         lock
         returns (uint256 orderID, bool created)
     {
         (orderID, created) = _createNewOrder(
-            sellToken,
+            gotToken,
             price,
             amount,
             trader,
@@ -1112,12 +1118,12 @@ contract LimitrVault is ILimitrVault {
         if (!created) {
             return (0, false);
         }
-        _depositToken(sellToken, msg.sender, amount);
-        emit NewSellOrder(sellToken, orderID, trader, price, amount);
+        _depositToken(gotToken, msg.sender, amount);
+        emit OrderCreated(gotToken, orderID, trader, price, amount);
     }
 
     function _createNewOrder(
-        address sellToken,
+        address gotToken,
         uint256 price,
         uint256 amount,
         address trader,
@@ -1127,35 +1133,35 @@ contract LimitrVault is ILimitrVault {
         require(amount > 0, "LimitrVault: zero amount not allowed");
         require(price > 0, "LimitrVault: zero price not allowed");
         // validate pointer
-        if (pointer != 0 && _lastOrder[sellToken][pointer] == 0) {
+        if (pointer != 0 && _lastOrder[gotToken][pointer] == 0) {
             return (0, false);
         }
         // save the order
         uint256 orderID = _nextID();
-        orderInfo[sellToken][orderID] = Order(price, amount, trader);
+        orderInfo[gotToken][orderID] = Order(price, amount, trader);
         // insert order into the order list and insert the price in the
         // price list if necessary
-        if (!_insertOrder(sellToken, orderID, price, pointer)) {
+        if (!_insertOrder(gotToken, orderID, price, pointer)) {
             return (0, false);
         }
         // insert order in the trader orders
-        _traderOrders[sellToken][trader].insertEnd(orderID);
+        _traderOrders[gotToken][trader].insertEnd(orderID);
         // update erc721 balance
         balanceOf[trader] += 1;
         emit Transfer(address(0), trader, orderID);
         // update the liquidity info
-        liquidityByPrice[sellToken][price] += amount;
-        totalLiquidity[sellToken] += amount;
+        liquidityByPrice[gotToken][price] += amount;
+        totalLiquidity[gotToken] += amount;
         return (orderID, true);
     }
 
     function _insertOrder(
-        address sellToken,
+        address gotToken,
         uint256 orderID,
         uint256 price,
         uint256 pointer
     ) internal returns (bool) {
-        mapping(uint256 => uint256) storage _last = _lastOrder[sellToken];
+        mapping(uint256 => uint256) storage _last = _lastOrder[gotToken];
         // the insert point is after the last order at the same price
         uint256 _prevID = _last[price];
         if (_prevID == 0) {
@@ -1163,23 +1169,23 @@ contract LimitrVault is ILimitrVault {
             if (pointer != 0 && _last[pointer] == 0) {
                 return false;
             }
-            SDLL storage priceList = _prices[sellToken];
+            SDLL storage priceList = _prices[gotToken];
             if (!priceList.insertWithPointer(price, pointer)) {
                 return false;
             }
             _prevID = _last[priceList.previous(price)];
         }
-        _orders[sellToken].insertAfter(orderID, _prevID);
+        _orders[gotToken].insertAfter(orderID, _prevID);
         _last[price] = orderID;
         return true;
     }
 
     function _cancelOrder(
-        address sellToken,
+        address gotToken,
         uint256 orderID,
         uint256 amount
     ) internal {
-        Order memory _order = orderInfo[sellToken][orderID];
+        Order memory _order = orderInfo[gotToken][orderID];
         // can only cancel up to the amount of the order
         require(
             _order.amount >= amount,
@@ -1191,35 +1197,35 @@ contract LimitrVault is ILimitrVault {
         if (remAmount == 0) {
             // remove the order from the list. remove the price also if no
             // other order exists at the same price
-            _removeOrder(sellToken, orderID);
+            _removeOrder(gotToken, orderID);
         } else {
             // update the available amount
-            orderInfo[sellToken][orderID].amount = remAmount;
+            orderInfo[gotToken][orderID].amount = remAmount;
         }
         // update the available liquidity info
-        liquidityByPrice[sellToken][_order.price] -= _amount;
-        totalLiquidity[sellToken] -= _amount;
-        emit OrderCanceled(sellToken, orderID, _amount);
+        liquidityByPrice[gotToken][_order.price] -= _amount;
+        totalLiquidity[gotToken] -= _amount;
+        emit OrderCanceled(gotToken, orderID, _amount);
     }
 
     /// @dev remove an order
-    function _removeOrder(address sellToken, uint256 orderID) internal {
-        uint256 orderPrice = orderInfo[sellToken][orderID].price;
-        address orderTrader = orderInfo[sellToken][orderID].trader;
-        DLL storage orderList = _orders[sellToken];
+    function _removeOrder(address gotToken, uint256 orderID) internal {
+        uint256 orderPrice = orderInfo[gotToken][orderID].price;
+        address orderTrader = orderInfo[gotToken][orderID].trader;
+        DLL storage orderList = _orders[gotToken];
         // find previous order
         uint256 _prevID = orderList.previous(orderID);
         // is the previous order at the same price?
         bool prevPriceNotEqual = orderPrice !=
-            orderInfo[sellToken][_prevID].price;
+            orderInfo[gotToken][_prevID].price;
         // single order at the price
         bool onlyOrderAtPrice = prevPriceNotEqual &&
-            orderPrice != orderInfo[sellToken][orderList.next(orderID)].price;
+            orderPrice != orderInfo[gotToken][orderList.next(orderID)].price;
         // delete the order and remove it from the list
-        delete orderInfo[sellToken][orderID];
+        delete orderInfo[gotToken][orderID];
         orderList.remove(orderID);
         // update _last
-        mapping(uint256 => uint256) storage _last = _lastOrder[sellToken];
+        mapping(uint256 => uint256) storage _last = _lastOrder[gotToken];
         if (_last[orderPrice] == orderID) {
             if (prevPriceNotEqual) {
                 delete _last[orderPrice];
@@ -1229,10 +1235,10 @@ contract LimitrVault is ILimitrVault {
         }
         if (onlyOrderAtPrice) {
             // remove price
-            _prices[sellToken].remove(orderPrice);
+            _prices[gotToken].remove(orderPrice);
         }
         // update trader orders and ERC721 balance
-        _traderOrders[sellToken][orderTrader].remove(orderID);
+        _traderOrders[gotToken][orderTrader].remove(orderID);
         balanceOf[orderTrader] -= 1;
         emit Transfer(orderTrader, address(0), orderID);
     }
@@ -1307,19 +1313,19 @@ contract LimitrVault is ILimitrVault {
     }
 
     function _returnAtMaxPrice(
-        address buyToken,
+        address wantToken,
         uint256 maxAmountIn,
         uint256 maxPrice
     ) internal view returns (uint256 amountIn, uint256 amountOut) {
         uint256 orderID = 0;
         Order memory _order;
-        DLL storage orderList = _orders[buyToken];
+        DLL storage orderList = _orders[wantToken];
         while (true) {
             orderID = orderList.next(orderID);
             if (orderID == 0) {
                 break;
             }
-            _order = orderInfo[buyToken][orderID];
+            _order = orderInfo[wantToken][orderID];
             if (_order.trader == address(0)) {
                 break;
             }
@@ -1327,7 +1333,7 @@ contract LimitrVault is ILimitrVault {
                 break;
             }
             uint256 buyAmount = returnAtPrice(
-                buyToken,
+                wantToken,
                 maxAmountIn,
                 _order.price
             );
@@ -1335,7 +1341,7 @@ contract LimitrVault is ILimitrVault {
                 buyAmount = _order.amount;
             }
             amountOut += buyAmount;
-            uint256 price = costAtPrice(buyToken, buyAmount, _order.price);
+            uint256 price = costAtPrice(wantToken, buyAmount, _order.price);
             amountIn += price;
             maxAmountIn -= price;
             if (maxAmountIn == 0) {
@@ -1349,46 +1355,46 @@ contract LimitrVault is ILimitrVault {
     }
 
     function _tradeFirstOrder(
-        address buyToken,
-        address sellToken,
+        address wantToken,
+        address gotToken,
         TradeHandler memory trade,
         uint256 maxPrice
     ) internal returns (bool) {
         // get the order ID
-        uint256 orderID = _orders[buyToken].first();
+        uint256 orderID = _orders[wantToken].first();
         if (orderID == 0) {
             return false;
         }
         // get the order
-        Order memory _order = orderInfo[buyToken][orderID];
+        Order memory _order = orderInfo[wantToken][orderID];
         if (_order.price > maxPrice) {
             return false;
         }
         uint256 buyAmount = returnAtPrice(
-            buyToken,
+            wantToken,
             trade.availableAmountIn,
             _order.price
         );
         if (buyAmount > _order.amount) {
             buyAmount = _order.amount;
         }
-        uint256 cost = costAtPrice(buyToken, buyAmount, _order.price);
+        uint256 cost = costAtPrice(wantToken, buyAmount, _order.price);
         // update order owner balance
-        traderBalance[sellToken][_order.trader] += cost;
+        traderBalance[gotToken][_order.trader] += cost;
         // update liquidity info
-        liquidityByPrice[buyToken][_order.price] -= buyAmount;
-        totalLiquidity[buyToken] -= buyAmount;
+        liquidityByPrice[wantToken][_order.price] -= buyAmount;
+        totalLiquidity[wantToken] -= buyAmount;
         // update order
         _order.amount -= buyAmount;
         if (_order.amount == 0) {
-            _removeOrder(buyToken, orderID);
+            _removeOrder(wantToken, orderID);
         } else {
-            orderInfo[buyToken][orderID].amount -= buyAmount;
+            orderInfo[wantToken][orderID].amount -= buyAmount;
         }
         // update trade data
         trade.update(cost, buyAmount);
         emit OrderTaken(
-            buyToken,
+            wantToken,
             orderID,
             _order.trader,
             buyAmount,
@@ -1401,7 +1407,7 @@ contract LimitrVault is ILimitrVault {
     }
 
     function _trade(
-        address buyToken,
+        address wantToken,
         uint256 price,
         uint256 maxAmountIn,
         address receiver,
@@ -1413,9 +1419,9 @@ contract LimitrVault is ILimitrVault {
         ) _postTradeHandler
     ) internal returns (uint256 amountIn, uint256 amountOut) {
         TradeHandler memory trade = TradeHandler(0, 0, withoutFee(maxAmountIn));
-        address sellToken = _otherToken(buyToken);
+        address gotToken = _otherToken(wantToken);
         while (trade.availableAmountIn > 0) {
-            if (!_tradeFirstOrder(buyToken, sellToken, trade, price)) {
+            if (!_tradeFirstOrder(wantToken, gotToken, trade, price)) {
                 break;
             }
         }
@@ -1423,7 +1429,7 @@ contract LimitrVault is ILimitrVault {
             trade.amountIn > 0 && trade.amountOut > 0,
             "LimitrVault: no trade"
         );
-        _postTradeHandler(buyToken, sellToken, trade, receiver);
+        _postTradeHandler(wantToken, gotToken, trade, receiver);
         return (withFee(trade.amountIn), trade.amountOut);
     }
 
@@ -1431,38 +1437,38 @@ contract LimitrVault is ILimitrVault {
     // collect fee
     // withdraw purchased tokens
     function _postTrade(
-        address buyToken,
-        address sellToken,
+        address wantToken,
+        address gotToken,
         TradeHandler memory trade,
         address receiver
     ) internal {
         // deposit payment
-        _depositToken(sellToken, msg.sender, trade.amountIn);
+        _depositToken(gotToken, msg.sender, trade.amountIn);
         // calculate fee
         uint256 fee = feeFor(trade.amountIn);
         // collect fee
         _tokenTransferFrom(
-            sellToken,
+            gotToken,
             msg.sender,
             ILimitrRegistry(registry).feeReceiver(),
             fee
         );
-        emit FeeCollected(sellToken, fee);
+        emit FeeCollected(gotToken, fee);
         // transfer purchased tokens
-        _withdrawToken(buyToken, receiver, trade.amountOut);
+        _withdrawToken(wantToken, receiver, trade.amountOut);
     }
 
     // only collect fee from the vault
     function _postBorrowTrade(
         address,
-        address sellToken,
+        address gotToken,
         TradeHandler memory trade,
         address
     ) internal {
         // calculate fee
         uint256 fee = feeFor(trade.amountIn);
         // collect fee
-        _withdrawToken(sellToken, ILimitrRegistry(registry).feeReceiver(), fee);
-        emit FeeCollected(sellToken, fee);
+        _withdrawToken(gotToken, ILimitrRegistry(registry).feeReceiver(), fee);
+        emit FeeCollected(gotToken, fee);
     }
 }

@@ -1,8 +1,8 @@
 const {
   twoTokenDeployment,
-  vaultNewSellOrder,
-  vaultNewSellOrders,
-  vaultBuyMaxPrice,
+  vaultNewOrder,
+  vaultNewOrders,
+  vaultTradeMaxPrice,
 } = require("./util");
 
 contract("LimitrVault", (accounts) => {
@@ -42,7 +42,7 @@ contract("LimitrVault", (accounts) => {
         35n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
       ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
-    await vaultNewSellOrders(vault, orders);
+    await vaultNewOrders(vault, orders);
   };
 
   const convertOrdersInfo = (orders) =>
@@ -55,7 +55,7 @@ contract("LimitrVault", (accounts) => {
         trader: orders.trader[idx],
       }));
 
-  it("can buy small order at max price", async () => {
+  it("can trade small order at max price", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -68,11 +68,11 @@ contract("LimitrVault", (accounts) => {
       );
     const price = order.price - 1n;
     const amount = 10000000n;
-    await vaultNewSellOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
+    await vaultNewOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
     const maxCost = await vault
       .costAtPrice(depl.tokens.tka.address, amount * 2n, price)
       .then(vault.withFee);
-    await vaultBuyMaxPrice(
+    await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,
@@ -91,7 +91,7 @@ contract("LimitrVault", (accounts) => {
     assert.isTrue(newOrder.amount < order.amount);
   });
 
-  it("can buy partial order at max price", async () => {
+  it("can trade partial order at max price", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -109,7 +109,7 @@ contract("LimitrVault", (accounts) => {
         firstOrder.price
       )
       .then(vault.withFee);
-    await vaultBuyMaxPrice(
+    await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,
@@ -129,7 +129,7 @@ contract("LimitrVault", (accounts) => {
     assert.isTrue(firstOrder.amount / 2n == newFirstOrder.amount);
   });
 
-  it("can buy full order at max price", async () => {
+  it("can trade full order at max price", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -143,7 +143,7 @@ contract("LimitrVault", (accounts) => {
     const maxCost = await vault
       .costAtPrice(depl.tokens.tka.address, firstOrder.amount, firstOrder.price)
       .then(vault.withFee);
-    await vaultBuyMaxPrice(
+    await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,
@@ -161,7 +161,7 @@ contract("LimitrVault", (accounts) => {
     assert.isTrue(firstOrder.orderID != newFirstOrder.orderID);
   });
 
-  it("can buy multiple orders at max price", async () => {
+  it("can trade multiple orders at max price", async () => {
     const depl = await twoTokenDeployment(accounts[0]);
     await createOrders(depl);
     const vault = await depl.vaultAtIdx(0);
@@ -177,7 +177,7 @@ contract("LimitrVault", (accounts) => {
     )
       .then((r) => r.reduce((ac, v) => ac + v, 0n))
       .then(vault.withFee);
-    const receipt = await vaultBuyMaxPrice(
+    const receipt = await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,
@@ -215,7 +215,7 @@ contract("LimitrVault", (accounts) => {
       orders[2].price
     );
     const fee = await vault.feeFor(cost.amountIn);
-    await vaultBuyMaxPrice(
+    await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,

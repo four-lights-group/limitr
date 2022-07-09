@@ -1,4 +1,4 @@
-const { twoTokenDeployment, toBigInt, vaultNewSellOrders } = require("./util");
+const { twoTokenDeployment, toBigInt, vaultNewOrders } = require("./util");
 
 contract("LimitrVault", (accounts) => {
   const createOrders = async (depl) => {
@@ -37,8 +37,8 @@ contract("LimitrVault", (accounts) => {
         35n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
       ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
-    await vaultNewSellOrders(vault, orders);
-    await depl.vaultTrackers[0].newSellOrders(
+    await vaultNewOrders(vault, orders);
+    await depl.vaultTrackers[0].newOrders(
       orders.map((order) => {
         order[0] = order[0].address;
         return order;

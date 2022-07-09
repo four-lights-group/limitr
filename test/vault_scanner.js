@@ -33,7 +33,7 @@ const createVaults = async (owner) => {
 
 const createOrder = async (vault, token, price, amount, owner) => {
   await token.approve(vault.address, amount, { from: owner });
-  await vault.newSellOrder(token.address, price, amount, owner, 0, {
+  await vault.newOrder(token.address, price, amount, owner, 0, {
     from: owner,
   });
 };
@@ -64,20 +64,26 @@ const createOrders = async (depl, owners) => {
   }
 };
 
-const buyAll = async (vault, buyToken, sellToken, traders) => {
+const tradeAll = async (vault, wantToken, gotToken, traders) => {
   const lastPrice = await vault
-    .prices(buyToken.address, 0, 5)
+    .prices(wantToken.address, 0, 5)
     .then((r) => r.filter((v) => v).slice(-1)[0]);
-  const liquidity = await vault.totalLiquidity(buyToken.address);
+  const liquidity = await vault.totalLiquidity(wantToken.address);
   const cost = await vault.costAtMaxPrice(
-    buyToken.address,
+    wantToken.address,
     liquidity,
     lastPrice
   );
   const fee = await vault.feeFor(cost.amountIn);
   const amount = cost.amountIn + fee;
-  await sellToken.approve(vault.address, amount);
-  await vault.buyAtMaxPrice(buyToken.address, lastPrice, amount, traders[0], 0);
+  await gotToken.approve(vault.address, amount);
+  await vault.tradeAtMaxPrice(
+    wantToken.address,
+    lastPrice,
+    amount,
+    traders[0],
+    0
+  );
 };
 
 const tradeAllOrders = async (depl, traders) => {
@@ -92,8 +98,8 @@ const tradeAllOrders = async (depl, traders) => {
     const vault = await LimitrVault.at(a);
     const t0 = await vault.token0().then((t) => IERC20.at(t));
     const t1 = await vault.token1().then((t) => IERC20.at(t));
-    await buyAll(vault, t0, t1, traders);
-    await buyAll(vault, t1, t0, traders);
+    await tradeAll(vault, t0, t1, traders);
+    await tradeAll(vault, t1, t0, traders);
   }
 };
 
@@ -120,80 +126,68 @@ contract("LimitrVaultScanner", (accounts) => {
     const depl = await createVaults(accounts[0]);
     // check memorable
     assert.isTrue(
-      (await depl.scanner.scanMemorableAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.memorableAll(accounts[0]).then(noZeroAddress))
         .length == 0n
     );
     // check open orders
     assert.isTrue(
-      (await depl.scanner.scanOpenOrdersAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.openOrdersAll(accounts[0]).then(noZeroAddress))
         .length == 0n
     );
     // check available balance
     assert.isTrue(
-      (
-        await depl.scanner
-          .scanAvailableBalancesAll(accounts[0])
-          .then(noZeroAddress)
-      ).length == 0n
+      (await depl.scanner.availableBalancesAll(accounts[0]).then(noZeroAddress))
+        .length == 0n
     );
     // create orders
     await createOrders(depl, accounts);
     // should have orders on all vaults
     assert.isTrue(
-      (await depl.scanner.scanOpenOrdersAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.openOrdersAll(accounts[0]).then(noZeroAddress))
         .length == 4n
     );
     // no available balance yet
     assert.isTrue(
-      (
-        await depl.scanner
-          .scanAvailableBalancesAll(accounts[0])
-          .then(noZeroAddress)
-      ).length == 0n
+      (await depl.scanner.availableBalancesAll(accounts[0]).then(noZeroAddress))
+        .length == 0n
     );
     // all vaults are memorable
     assert.isTrue(
-      (await depl.scanner.scanMemorableAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.memorableAll(accounts[0]).then(noZeroAddress))
         .length == 4n
     );
     // buy all orders
     await tradeAllOrders(depl, accounts);
     // no orders
     assert.isTrue(
-      (await depl.scanner.scanOpenOrdersAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.openOrdersAll(accounts[0]).then(noZeroAddress))
         .length == 0n
     );
     // got balance available on all vaults
     assert.isTrue(
-      (
-        await depl.scanner
-          .scanAvailableBalancesAll(accounts[0])
-          .then(noZeroAddress)
-      ).length == 4n
+      (await depl.scanner.availableBalancesAll(accounts[0]).then(noZeroAddress))
+        .length == 4n
     );
     // all vaults are memorable
     assert.isTrue(
-      (await depl.scanner.scanMemorableAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.memorableAll(accounts[0]).then(noZeroAddress))
         .length == 4n
     );
     // withdraw from all vaults
     await withdrawAll(depl, accounts);
     // no orders
     assert.isTrue(
-      (await depl.scanner.scanOpenOrdersAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.openOrdersAll(accounts[0]).then(noZeroAddress))
         .length == 0n
     );
     // no balance
     assert.isTrue(
-      (
-        await depl.scanner
-          .scanAvailableBalancesAll(accounts[0])
-          .then(noZeroAddress)
-      ).length == 0n
+      (await depl.scanner.availableBalancesAll(accounts[0]).then(noZeroAddress))
+        .length == 0n
     );
     // not memorable
     assert.isTrue(
-      (await depl.scanner.scanMemorableAll(accounts[0]).then(noZeroAddress))
+      (await depl.scanner.memorableAll(accounts[0]).then(noZeroAddress))
         .length == 0n
     );
   });
@@ -201,14 +195,14 @@ contract("LimitrVaultScanner", (accounts) => {
   it("reports the correct list of vaults for a given token", async () => {
     const depl = await createVaults(accounts[0]);
     const vaults = await depl.scanner
-      .scanForTokenAll(depl.tokens.tka.address)
+      .tokenAll(depl.tokens.tka.address)
       .then((r) => r.filter((v) => v != ADDRESS_ZERO));
     assert.isTrue(vaults.length == 4);
     assert.isTrue(
       await Promise.all(
         Object.keys(depl.tokens)
           .filter((t) => t != "tka")
-          .map((tk) => depl.scanner.scanForTokenAll(depl.tokens[tk].address))
+          .map((tk) => depl.scanner.tokenAll(depl.tokens[tk].address))
       ).then(
         (r) =>
           r

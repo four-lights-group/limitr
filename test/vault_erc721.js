@@ -1,13 +1,13 @@
 const {
   assertReason,
   twoTokenDeployment,
-  vaultNewSellOrder,
+  vaultNewOrder,
   ADDRESS_ZERO,
 } = require("./util");
 
 contract("LimitrVault", (accounts) => {
   const createOrder = async (depl) =>
-    await vaultNewSellOrder(
+    await vaultNewOrder(
       await depl.vaultAtIdx(0),
       depl.tokens.tka,
       2n * 10n ** depl.tokenSpecs.tkb.decimals,

@@ -1,10 +1,4 @@
-const {
-  twoTokenDeployment,
-  vaultNewSellOrders,
-  vaultBuyMaxPrice,
-  formatAmount,
-  assertReason,
-} = require("./util");
+const { twoTokenDeployment, vaultNewOrders } = require("./util");
 IERC20 = artifacts.require("IERC20");
 
 IERC20.numberFormat = "BigInt";
@@ -46,7 +40,7 @@ contract("LimitrVault", (accounts) => {
         100n * 10n ** (depl.tokenSpecs.tka.decimals - 1n),
       ],
     ].map((v) => [depl.tokens.tka].concat(v).concat([accounts[0]]));
-    await vaultNewSellOrders(vault, tkaOrders);
+    await vaultNewOrders(vault, tkaOrders);
     const tkbOrders = [
       [7n * 10n ** (depl.tokenSpecs.tka.decimals - 1n), 1n],
       [
@@ -71,7 +65,7 @@ contract("LimitrVault", (accounts) => {
         100n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n),
       ],
     ].map((v) => [depl.tokens.tkb].concat(v).concat([accounts[0]]));
-    await vaultNewSellOrders(vault, tkbOrders);
+    await vaultNewOrders(vault, tkbOrders);
   };
 
   const removeNumericalKeys = (obj) =>

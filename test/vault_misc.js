@@ -1,7 +1,7 @@
 const {
   twoTokenDeployment,
-  vaultNewSellOrder,
-  vaultBuyMaxPrice,
+  vaultNewOrder,
+  vaultTradeMaxPrice,
   assertReason,
 } = require("./util");
 
@@ -42,14 +42,14 @@ contract("LimitrVault", (accounts) => {
     const vault = await depl.vaultAtIdx(0);
     const price = 12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n);
     const amount = 2n * 10n ** depl.tokenSpecs.tka.decimals;
-    await vaultNewSellOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
+    await vaultNewOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
     const cost = await vault.costAtMaxPrice(
       depl.tokens.tka.address,
       amount,
       price
     );
     const fee = await vault.feeFor(cost.amountIn);
-    await vaultBuyMaxPrice(
+    await vaultTradeMaxPrice(
       vault,
       depl.tokens.tka,
       depl.tokens.tkb,

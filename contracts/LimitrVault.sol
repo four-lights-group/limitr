@@ -1205,7 +1205,7 @@ contract LimitrVault is ILimitrVault {
         // update the available liquidity info
         liquidityByPrice[gotToken][_order.price] -= _amount;
         totalLiquidity[gotToken] -= _amount;
-        emit OrderCanceled(gotToken, orderID, _amount);
+        emit OrderCanceled(gotToken, orderID, _order.price, _amount);
     }
 
     /// @dev remove an order

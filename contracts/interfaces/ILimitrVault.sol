@@ -31,10 +31,12 @@ interface ILimitrVault is IERC721 {
     /// @notice OrderCanceled is emitted when a trader cancels (even if partially) an order
     /// @param token The token traded in, will be either token0 or token1
     /// @param id The order id
+    /// @param price The order price
     /// @param amount The amount canceled
     event OrderCanceled(
         address indexed token,
         uint256 indexed id,
+        uint256 indexed price,
         uint256 amount
     );
 

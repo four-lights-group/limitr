@@ -774,7 +774,7 @@ contract LimitrVault is ILimitrVault {
     ///         The token/order must exists
     /// @param to The address of the account to approve
     /// @param tokenId the token/order
-    function approve(address to, uint256 tokenId) public override {
+    function approve(address to, uint256 tokenId) public override lock {
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
         bool allowed = msg.sender == owner ||
@@ -803,6 +803,7 @@ contract LimitrVault is ILimitrVault {
     function setApprovalForAll(address operator, bool approved)
         public
         override
+        lock
     {
         require(msg.sender != operator, "ERC721: can't approve yourself");
         isApprovedForAll[msg.sender][operator] = approved;

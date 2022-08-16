@@ -4,46 +4,65 @@ contract("LimitrRegistry", (accounts) => {
   const deploy = (owner) =>
     newDeployment(generateTokensSpecs(owner, { A: 18n, B: 12n }));
 
-  it("only admin can change URLs", async () => {
+  it("URL management, Jumpstart implementation", async () => {
     const depl = await deploy(accounts[0]);
-    assert.isTrue((await depl.registry.URLS()).length == 0);
-    const URL1 = "https://limitr.com";
-    const URL2 = "ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
-    const URL3 = "ipfs://QmSgvgwxZGaBLqkGyWemEDqikCqU52XxsYLKtdy3vGZ8uq";
+    const URIS = {
+      https: "https://limitr.com",
+      ipfs: "ipfs://QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG",
+      onion:
+        "http://haystak5njsmn2hqkewecpaxetahtwhsbsa64jom2k22z5afxhnpxfid.onion",
+    };
     try {
-      await depl.registry.addURL(URL1, { from: accounts[1] });
+      await depl.registry.JS_add("hello", "world", { from: accounts[1] });
       assert.isTrue(false);
     } catch (err) {
       assertReason.notTheAdmin(err);
     }
-    await depl.registry.addURL(URL1);
-    await depl.registry.addURL(URL2);
-    let urls = await depl.registry.URLS();
-    assert.isTrue(urls[0] == URL1);
-    assert.isTrue(urls[1] == URL2);
+    let p = Promise.resolve(undefined);
+    Object.entries(URIS).forEach((ent) => {
+      p = p.then(() => depl.registry.JS_add(ent[0], ent[1]));
+    });
+    await p;
+    const r = await depl.registry.JS_getAll();
+    r[0].forEach((name, idx) => assert.isTrue(URIS[name] === r[1][idx]));
     try {
-      await depl.registry.updateURL(1, URL3, { from: accounts[1] });
+      await depl.registry.JS_add("https", "hello world");
+      assert.isTrue(true == false);
+    } catch (err) {
+      assertReason.JSM_alreadyExists(err);
+    }
+    const NEW_URI = "https://limitr.finance";
+    try {
+      await depl.registry.JS_update("https", NEW_URI, { from: accounts[1] });
       assert.isTrue(false);
     } catch (err) {
       assertReason.notTheAdmin(err);
     }
-    await depl.registry.updateURL(1, URL3);
-    urls = await depl.registry.URLS();
-    assert.isTrue(urls[0] == URL1);
-    assert.isTrue(urls[1] == URL3);
+    await depl.registry.JS_update("https", NEW_URI);
+    assert.isTrue((await depl.registry.JS_get("https")) === NEW_URI);
     try {
-      await depl.registry.removeURL(1, { from: accounts[1] });
+      await depl.registry.JS_update("hello", "world");
+      assert.isTrue(true == false);
+    } catch (err) {
+      assertReason.JSM_notFound(err);
+    }
+    try {
+      await depl.registry.JS_remove("https", { from: accounts[1] });
       assert.isTrue(false);
     } catch (err) {
       assertReason.notTheAdmin(err);
     }
-    await depl.registry.removeURL(1);
-    urls = await depl.registry.URLS();
-    assert.isTrue(urls.length == 1);
-    assert.isTrue(urls[0] == URL1);
-    await depl.registry.removeURL(0);
-    urls = await depl.registry.URLS();
-    assert.isTrue(urls.length == 0);
+    await depl.registry.JS_remove("https");
+    assert.isTrue(
+      (await depl.registry.JS_names()).find((v) => v == "https") == undefined
+    );
+    try {
+      await depl.registry.JS_remove("hello");
+      assert.isTrue(true == false);
+    } catch (err) {
+      assertReason.JSM_notFound(err);
+    }
+    assert.isTrue((await depl.registry.JS_get("https")) == "");
   });
 
   it("only the admin can change the admin", async () => {

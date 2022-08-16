@@ -37,11 +37,8 @@ const assertReason = {
   notTheAdmin: (err) => expectReason(err, "LimitrRegistry: not the admin"),
   notTheRouter: (err) => expectReason(err, "LimitrVault: not the router"),
   notAllowed: (err) => expectReason(err, "LimitrRouter: not allowed"),
-  /*
-LimitrRouter: vault doesn't exist
-LimitrRouter: can't transfer()
-LimitrRouter: can't transferFrom()
-*/
+  JSM_alreadyExists: (err) => expectReason(err, "JSM: Already exists"),
+  JSM_notFound: (err) => expectReason(err, "JSM: Not found"),
 };
 
 const estimateGas = (func, ...args) => func.estimateGas(...args);

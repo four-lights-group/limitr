@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-interface ILimitrRegistry {
+import "./IJumpstart.sol";
+
+interface ILimitrRegistry is IJumpstart, IJumpstartManager {
     // events
 
     /// @notice VaultImplementationUpdated is emitted when a new vault implementation is set
@@ -36,22 +38,6 @@ interface ILimitrRegistry {
         address _vaultScanner,
         address _vaultImplementation
     ) external;
-
-    /// @return The existing URL's for the webui
-    function URLS() external view returns (string[] memory);
-
-    /// @notice Add an URL to the URL list
-    /// @param url The URL to add
-    function addURL(string calldata url) external;
-
-    /// @notice Remove the URL at idx from the URL list
-    /// @param idx The idx to remove
-    function removeURL(uint256 idx) external;
-
-    /// @notice Update an existing URL
-    /// @param idx The idx to remove
-    /// @param url The URL to add
-    function updateURL(uint256 idx, string calldata url) external;
 
     /// @return The admin address
     function admin() external view returns (address);

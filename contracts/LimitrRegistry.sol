@@ -53,35 +53,71 @@ contract LimitrRegistry is ILimitrRegistry {
         vaultImplementation = _vaultImplementation;
     }
 
-    string[] internal _URLS;
+    string[] internal _uriNames;
 
-    /// @return The existing URL's for the webui
-    function URLS() external view override returns (string[] memory) {
-        return _URLS;
+    /// @return The names of the available uris
+    function JS_names() external view override returns (string[] memory) {
+        return _uriNames;
+    }
+
+    /// @return The uris for the provided `name`
+    mapping(string => string) public override JS_get;
+
+    /// @return All uris
+    function JS_getAll()
+        external
+        view
+        override
+        returns (string[] memory, string[] memory)
+    {
+        string[] memory rn = new string[](_uriNames.length);
+        string[] memory ru = new string[](_uriNames.length);
+        for (uint256 i = 0; i < _uriNames.length; i++) {
+            rn[i] = _uriNames[i];
+            ru[i] = JS_get[rn[i]];
+        }
+        return (rn, ru);
     }
 
     /// @notice Add an URL to the URL list
-    /// @param url The URL to add
-    function addURL(string calldata url) external override onlyAdmin {
-        _URLS.push(url);
-    }
-
-    /// @notice Remove the URL at idx from the URL list
-    /// @param idx The idx to remove
-    function removeURL(uint256 idx) external override onlyAdmin {
-        _URLS[idx] = _URLS[_URLS.length - 1];
-        _URLS.pop();
-    }
-
-    /// @notice Update an existing URL
-    /// @param idx The idx to remove
-    /// @param url The URL to add
-    function updateURL(uint256 idx, string calldata url)
+    /// @param name The name of the uri to add
+    /// @param uri The URI
+    function JS_add(string calldata name, string calldata uri)
         external
         override
         onlyAdmin
     {
-        _URLS[idx] = url;
+        require(bytes(JS_get[name]).length == 0, "JSM: Already exists");
+        _uriNames.push(name);
+        JS_get[name] = uri;
+    }
+
+    /// @notice Remove the URI from the list
+    /// @param name The name of the uri to remove
+    function JS_remove(string calldata name) external override onlyAdmin {
+        bytes32 nameK = keccak256(abi.encodePacked(name));
+        for (uint256 i = 0; i < _uriNames.length; i++) {
+            if (nameK != keccak256(abi.encodePacked(_uriNames[i]))) {
+                continue;
+            }
+            _uriNames[i] = _uriNames[_uriNames.length - 1];
+            _uriNames.pop();
+            delete JS_get[name];
+            return;
+        }
+        require(true == false, "JSM: Not found");
+    }
+
+    /// @notice Update an existing URL
+    /// @param name The name of the URI to update
+    /// @param newUri The new URI
+    function JS_update(string calldata name, string calldata newUri)
+        external
+        override
+        onlyAdmin
+    {
+        require(bytes(JS_get[name]).length != 0, "JSM: Not found");
+        JS_get[name] = newUri;
     }
 
     /// @notice Transfer the admin rights. Emits AdminUpdated

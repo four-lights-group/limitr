@@ -246,7 +246,7 @@ interface ILimitrVault is IERC721 {
         view
         returns (uint256);
 
-    /// @notice Return the available liquidity until `maxPrice`
+    /// @notice Return `n` of the available prices and liquidity, starting at `current`, for the provided `token`
     /// @param token Must be `token0` or `token1`
     /// @param current The current price
     /// @param n The number of prices to return

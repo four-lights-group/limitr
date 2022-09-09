@@ -27,6 +27,8 @@ const objFromEntries = (ent) =>
 const expectReason = (err, reason) => assert.isTrue(err.reason == reason);
 
 const assertReason = {
+  JSM_alreadyExists: (err) => expectReason(err, "JSM: Already exists"),
+  JSM_notFound: (err) => expectReason(err, "JSM: Not found"),
   onlyForTheAdmin: (err) =>
     expectReason(err, "LimitrVault: only for the admin"),
   canOnlySetASmallerFee: (err) =>
@@ -34,11 +36,10 @@ const assertReason = {
   notTheOwnerApprovedOrOperator: (err) => (
     err, "LimitrVault: not the owner, approved or operator"
   ),
-  notTheAdmin: (err) => expectReason(err, "LimitrRegistry: not the admin"),
   notTheRouter: (err) => expectReason(err, "LimitrVault: not the router"),
+  tradingPaused: (err) => expectReason(err, "LimitrVault: trading is paused"),
+  notTheAdmin: (err) => expectReason(err, "LimitrRegistry: not the admin"),
   notAllowed: (err) => expectReason(err, "LimitrRouter: not allowed"),
-  JSM_alreadyExists: (err) => expectReason(err, "JSM: Already exists"),
-  JSM_notFound: (err) => expectReason(err, "JSM: Not found"),
 };
 
 const estimateGas = (func, ...args) => func.estimateGas(...args);

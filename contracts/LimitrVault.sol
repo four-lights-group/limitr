@@ -657,6 +657,7 @@ contract LimitrVault is ILimitrVault {
         withinDeadline(deadline)
         validToken(wantToken)
         lock
+        isTrading
         returns (uint256, uint256)
     {
         return _trade(wantToken, maxPrice, maxAmountIn, receiver, _postTrade);
@@ -910,6 +911,7 @@ contract LimitrVault is ILimitrVault {
         withinDeadline(deadline)
         validToken(profitToken)
         lock
+        isTrading
         returns (uint256 profitAmount, uint256 otherAmount)
     {
         address otherToken = _otherToken(profitToken);
@@ -947,7 +949,25 @@ contract LimitrVault is ILimitrVault {
         );
     }
 
+    /// @notice Returns the trading status of the contract
+    bool public override isTradingPaused = false;
+
+    /// @notice Pauses trading on the vault. Can only be called by the admin
+    function pauseTrading() external override onlyAdmin {
+        isTradingPaused = true;
+    }
+
+    /// @notice Resumes trading on the vault. Can only be called by the admin
+    function resumeTrading() external override onlyAdmin {
+        isTradingPaused = false;
+    }
+
     // modifiers
+
+    modifier isTrading() {
+        require(isTradingPaused == false, "LimitrVault: trading is paused");
+        _;
+    }
 
     modifier validToken(address token) {
         require(
@@ -1107,6 +1127,7 @@ contract LimitrVault is ILimitrVault {
         withinDeadline(deadline)
         validToken(gotToken)
         lock
+        isTrading
         returns (uint256 orderID, bool created)
     {
         (orderID, created) = _createNewOrder(

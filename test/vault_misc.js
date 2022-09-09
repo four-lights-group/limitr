@@ -69,4 +69,66 @@ contract("LimitrVault", (accounts) => {
       assertReason.notTheRouter(err);
     }
   });
+
+  it("vault can only paused/resumed by the admin", async () => {
+    const depl = await twoTokenDeployment(accounts[0]);
+    const vault = await depl.vaultAtIdx(0);
+    try {
+      await vault.pauseTrading({ from: accounts[1] });
+      assert.isTrue(false);
+    } catch (err) {
+      assertReason.onlyForTheAdmin(err);
+    }
+    await vault.pauseTrading({ from: accounts[0] });
+    try {
+      await vault.resumeTrading({ from: accounts[1] });
+      assert.isTrue(false);
+    } catch (err) {
+      assertReason.onlyForTheAdmin(err);
+    }
+    await vault.resumeTrading({ from: accounts[0] });
+  });
+
+  it("vault can't trade when paused", async () => {
+    const depl = await twoTokenDeployment(accounts[0]);
+    const vault = await depl.vaultAtIdx(0);
+    const price = 12n * 10n ** (depl.tokenSpecs.tkb.decimals - 1n);
+    const amount = 2n * 10n ** depl.tokenSpecs.tka.decimals;
+    await vaultNewOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
+    await vault.pauseTrading({ from: accounts[0] });
+    try {
+      await vaultNewOrder(vault, depl.tokens.tka, price, amount, accounts[0]);
+      assert.isTrue(false);
+    } catch (err) {
+      assertReason.tradingPaused(err);
+    }
+    const cost = await vault.costAtMaxPrice(
+      depl.tokens.tka.address,
+      amount,
+      price
+    );
+    const fee = await vault.feeFor(cost.amountIn);
+    try {
+      await vaultTradeMaxPrice(
+        vault,
+        depl.tokens.tka,
+        depl.tokens.tkb,
+        price,
+        cost.amountIn + fee,
+        accounts[0]
+      );
+      assert.isTrue(false);
+    } catch (err) {
+      assertReason.tradingPaused(err);
+    }
+    await vault.resumeTrading({ from: accounts[0] });
+    await vaultTradeMaxPrice(
+      vault,
+      depl.tokens.tka,
+      depl.tokens.tkb,
+      price,
+      cost.amountIn + fee,
+      accounts[0]
+    );
+  });
 });

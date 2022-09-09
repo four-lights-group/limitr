@@ -83,6 +83,12 @@ interface ILimitrVault is IERC721 {
     /// @param amount The amount collected
     event FeeCollected(address indexed token, uint256 amount);
 
+    /// @notice TradingPaused is emitted when trading is paused by the admin
+    event TradingPaused();
+
+    /// @notice TradingResumed is emitted when trading is paused by the admin
+    event TradingResumed();
+
     /// @notice Initialize the market. Must be called by the factory once at deployment time
     /// @param _token0 The first token of the pair
     /// @param _token1 The second token of the pair
@@ -549,4 +555,13 @@ interface ILimitrVault is IERC721 {
         address receiver,
         uint256 deadline
     ) external returns (uint256 profitAmount, uint256 otherAmount);
+
+    /// @notice Returns the trading status of the contract
+    function isTradingPaused() external view returns (bool);
+
+    /// @notice Pauses trading on the vault. Can only be called by the admin
+    function pauseTrading() external;
+
+    /// @notice Resumes trading on the vault. Can only be called by the admin
+    function resumeTrading() external;
 }

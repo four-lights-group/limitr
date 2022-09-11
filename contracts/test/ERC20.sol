@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity ^0.8.0;
 
@@ -7,7 +7,6 @@ import "./interfaces/IERC20.sol";
 /// @author Limitr
 /// @title ERC20 token
 contract ERC20 is IERC20 {
-
     /// @return Token name
     string public override name;
 
@@ -30,7 +29,7 @@ contract ERC20 is IERC20 {
     /// @param _name The token name
     /// @param _symbol The token symbol
     /// @param _decimals The token decimals
-    constructor (
+    constructor(
         string memory _name,
         string memory _symbol,
         uint8 _decimals
@@ -52,7 +51,11 @@ contract ERC20 is IERC20 {
     /// @param owner The owner address
     /// @param spender The spender address
     /// @param amount The amount required
-    modifier enoughAllowance(address owner, address spender, uint256 amount) {
+    modifier enoughAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) {
         require(allowance[owner][spender] >= amount, "not enough allowance");
         _;
     }
@@ -69,7 +72,9 @@ contract ERC20 is IERC20 {
     /// @param amount The amount to transfer
     /// @return true on success
     function transfer(address to, uint256 amount)
-        public virtual override
+        public
+        virtual
+        override
         enoughBalance(msg.sender, amount)
         noZeroAddress(to)
         returns (bool)
@@ -83,7 +88,8 @@ contract ERC20 is IERC20 {
     /// @param amount The amount to approve
     /// @return true on success
     function approve(address spender, uint256 amount)
-        public override
+        public
+        override
         noZeroAddress(spender)
         returns (bool)
     {
@@ -96,8 +102,14 @@ contract ERC20 is IERC20 {
     /// @param to The new owner address
     /// @param amount The amount to transfer
     /// @return true on success
-    function transferFrom(address from, address to, uint256 amount)
-        public virtual override
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    )
+        public
+        virtual
+        override
         noZeroAddress(from)
         noZeroAddress(to)
         enoughBalance(from, amount)
@@ -115,7 +127,11 @@ contract ERC20 is IERC20 {
     /// @param from The origin address
     /// @param to The destination address
     /// @param amount The amount to transfer
-    function _transfer(address from, address to, uint256 amount) internal {
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
         emit Transfer(from, to, amount);
@@ -125,7 +141,11 @@ contract ERC20 is IERC20 {
     /// @param owner The owner address
     /// @param spender The spender address
     /// @param amount The amount to approve
-    function _approve(address owner, address spender, uint256 amount) internal {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal {
         allowance[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }

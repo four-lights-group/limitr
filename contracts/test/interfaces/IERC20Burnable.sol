@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity ^0.8.0;
 
 /// @author Limitr
 /// @title Burnable ERC20 interface
 interface IERC20Burnable {
-
     /// @notice Burn is emitted when tokens are burned
     /// @param owner The owner address
     /// @param amount The amount burned

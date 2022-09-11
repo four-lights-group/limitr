@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity ^0.8.0;
 
 /// @author Limitr
 /// @title Mintable ERC20 interface
 interface IERC20Mintable {
-
     /// @notice Mint is emitted when a tokens are minted
     /// @param owner The owner address
     /// @param amount The amount minted

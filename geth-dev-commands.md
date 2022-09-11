@@ -1,0 +1,2 @@
+- list all hosted accounts balance: `personal.listAccounts.forEach(acc=>console.log(acc,web3.fromWei(eth.getBalance(acc),"ether")))`
+- fund all accounts from the first: `personal.listAccounts.slice(1).forEach(acc=>eth.sendTransaction({from:personal.listAccounts[0],to:acc,value:web3.toWei(1000000000,"ether")}))`

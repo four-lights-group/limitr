@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: BSD-3-Clause
+// SPDX-License-Identifier: BUSL-1.1
 
 pragma solidity ^0.8.0;
 
 /// @author Limitr
 /// @title Ownable interface
 interface IOwnable {
-
     /// @notice OwnershipTransfer is emitted when a transfer of ownership occurs
     /// @param owner The current owner address
     /// @param newOwner The new owner address
